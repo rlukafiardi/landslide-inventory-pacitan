@@ -15,8 +15,10 @@ Decided with the user:
 
 ## Fixed design (written into the notes before any real model, ds-workflow phase 4)
 - **Grid**: the Mendeley factor-raster grid (EPSG:32749, 10 m, 5815 x 4051, extent of `map_landuse.tif`). Every layer is aligned to it.
-- **Domain**: the area the inventory actually mapped. The default is the valid (non-nodata) land-use mask, to be confirmed against the
-  Data in Brief paper (step 1a). Pixels outside the mapped area must not count as negatives.
+- **Domain**: the area the inventory actually mapped. The paper does not give a footprint and says the inventory started from BPBD citizen reports,
+  so completeness is unverified. Default: the valid land-use mask (regency); to be confirmed with the inventory author (Pleiades scene footprint).
+  Until then report object recall on the whole domain and on a conservative sub-domain (3 km blocks within 3 km of a landslide polygon).
+  Pixels outside the mapped area must not count as negatives.
 - **Labels**: pixels whose centre falls inside a polygon = 1. A 20 m ring around each polygon is excluded from training and
   pixel metrics, to allow for edge and misregistration uncertainty. Everything else in the domain = 0.
 - **Test set**: 3 km blocks, about 20% held out, stratified by landslide-pixel tercile. Carved once with a fixed seed.
@@ -110,8 +112,8 @@ f. **Test carve** (`src/data/split.py`): 3 km blocks, stratified, seed fixed. St
 Other events, Sentinel-1 features (listed as an idea), deep-learning segmentation, susceptibility, deployment, dashboards.
 
 ## Risks, riskiest first
-1. The inventory doesn't cover the whole domain, so false negatives are fabricated. Step 1a resolves it.
-2. The land-use layer is post-event and leaks the label. Step 1a and the leakage review.
+1. The inventory doesn't cover the whole domain (paper: starts from citizen reports, no footprint given), so false negatives are fabricated and precision is understated. Step 1a: ask the inventory author; report both domains; the user reviews a sample of false alarms.
+2. Land-use leakage: now unlikely (1:25,000 topographic-map polygons cannot hold 100 to 1,000 m2 scars); still run the detector with and without it.
 3. EE quota or download limits on about 3-4 GB. Check the limits first, and the job is resumable.
 4. Flood and river-erosion scars appear as false positives the inventory never mapped. Error analysis; the user judges a sample.
 
