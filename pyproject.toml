@@ -1,0 +1,12 @@
+[project]
+name = "landslide-inventory-pacitan"
+version = "0.1.0"
+requires-python = ">=3.14"
+dependencies = [
+    "earthengine-api>=1.7.52",
+    "geopandas>=1.2.0",
+    "matplotlib>=3.11.2",
+    "pandas>=3.1.1",
+    "rasterio>=1.5.2",
+    "shapely>=2.2.0",
+]
