@@ -5,13 +5,14 @@ Detect landslides triggered by Cyclone Cempaka (28 Nov to 1 Dec 2017) in Pacitan
 POC: do Satellite Embedding change features (2018 vs 2017) detect Cempaka landslides at least as well as a Sentinel-2 dNDVI baseline? Slice: 1 to 2 sub-districts, a few hundred labeled polygons, spatial train/test split. Pass / stop: embeddings beat dNDVI recall at similar precision, or catch slides it misses; drop if no better or only works above a size cutoff that loses most of the inventory (to be written as a script check). Out of scope until it passes: all of Pacitan, susceptibility mapping, pipeline, dashboard, other events.
 
 ## Data
-- Sources: TBD
-- Grain / key tables: TBD
-- Known quirks: embeddings are annual (2017 is almost all pre-event; 2018 may be diluted by revegetation); 10 m pixels miss small slides.
+- Sources: reference inventory = Samodra et al. (UGM), Mendeley Data DOI 10.17632/vrtx3w6mjd.1, CC BY 4.0 (credit authors). Mendeley page footer reserves text/data-mining and AI-training rights; read as site content, not checked against the dataset licence. Embeddings: Earth Engine GOOGLE/SATELLITE_EMBEDDING/V1/ANNUAL (2017 layer regenerated in v1.1; pin version, check live catalog for the upper year).
+- Grain / key tables: `data/spatial/mendeley_vrtx3w6mjd/landslide_pacitan.gpkg`: 743 MultiPolygons, EPSG:32749, columns Id, kode, Area, X/Y_centroid. Also available, not downloaded: ls_center.gpkg, non_ls.gpkg, 11 factor rasters (~96 MB each).
+- Known quirks: embeddings are annual (2017 is almost all pre-event; 2018 may be diluted by revegetation); 10 m pixels miss small slides: median polygon 1,068 m2, 15.9% under 3 px, 27.5% under 5 px. Extent is all of Pacitan (~43 x 39 km); landslides are ~0.13% of the bbox, so negatives must be sampled and pixel accuracy is meaningless.
 
 ## Decisions
 - 2026-11-11: Project created. Type: modelling, spatial. Tools: geopandas, shapely, rasterio, pandas, matplotlib, earthengine-api (uv). scikit-learn added at the modelling step.
+- 2026-11-11: Used the public Samodra inventory as labels (no need for the friend's data). Size check (`src/inventory_check.py`) done; pass/stop criteria unchanged. Report metrics at polygon and pixel level, split by size class (<5 px, 5 to 20 px, >20 px). Slice must shrink from all of Pacitan to one or two sub-districts.
 
 ## Status
-- Works: scaffold only.
-- Next, riskiest first: (1) find a usable reference inventory and check terms; (2) share of polygons under 2 to 3 pixels; (3) do 2017 vs 2018 embeddings change at known scars; (4) usable Sentinel-2 scenes Dec 2017 to early 2018.
+- Works: scaffold, private repo (rlukafiardi/landslide-inventory-pacitan), inventory downloaded and size-checked.
+- Next, riskiest first: (1) done: inventory found; (2) done: size check; (3) open, needs `earthengine authenticate` with the personal account: do 2017 vs 2018 embeddings change at known scars vs random non-landslide points; (4) usable Sentinel-2 scenes Dec 2017 to early 2018.
