@@ -8,4 +8,4 @@ data:
 	for L in emb2018 emb2017 ndvi; do $(RUN) src.ingestion.download_stack $$L; done
 	$(RUN) src.data.check_stack
 	$(RUN) src.data.labels $(FDIR)
-	test -f data/interim/test_blocks.json || $(RUN) src.data.split
+	test -f data/interim/test_blocks.json || ( $(RUN) src.data.split )
