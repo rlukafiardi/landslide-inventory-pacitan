@@ -56,7 +56,7 @@ for cfg in configs:
         diff = np.nanmean(boots(cfg, tg), axis=0) - np.nanmean(boots(base, tg), axis=0)
         diff = diff[~np.isnan(diff)]
         get_c, get_b = per_repeat(cfg), per_repeat(base)
-        reps = sorted(r for r in raw[(raw.config == cfg)].repeat.unique())
+        reps = sorted(r for r in raw.repeat.unique() if r >= 0)
         pc = np.array([get_c(r) for r in reps], dtype=float)
         pb = np.array([get_b(r) for r in reps], dtype=float)
         won = int(np.sum(~np.isnan(pc) & (np.nan_to_num(pc, nan=-1) > np.nan_to_num(pb, nan=-1))))
