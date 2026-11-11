@@ -8,5 +8,6 @@ dependencies = [
     "matplotlib>=3.11.2",
     "pandas>=3.1.1",
     "rasterio>=1.5.2",
+    "scikit-learn>=1.9.1",
     "shapely>=2.2.0",
 ]

@@ -12,33 +12,19 @@ Usage: python -m src.s2_dndvi_check <matched_points_csv>
 """
 import sys
 
-import ee
 import geopandas as gpd
 import numpy as np
 import pandas as pd
 
-from src.embedding_utils import auc, init_ee, sample_image
+from src.embedding_utils import S2_WINDOWS, auc, init_ee, ndvi_composite, sample_image
 
-PRE = ("2017-08-01", "2017-11-01")
-POST = {"A Dec17-Mar18": ("2017-12-01", "2018-04-01"), "B Apr-May18": ("2018-04-01", "2018-06-01")}
-CS_MIN = 0.6
+POST = {"A Dec17-Mar18": S2_WINDOWS["postA"], "B Apr-May18": S2_WINDOWS["postB"]}
 
 meta = pd.read_csv(sys.argv[1], index_col="pid")
 pts = gpd.GeoDataFrame(meta.reset_index()[["pid"]], geometry=gpd.points_from_xy(meta.lon, meta.lat), crs=4326)
 
 init_ee()
-aoi = ee.Geometry.Rectangle([111.0, -8.28, 111.39, -7.93])
-cs = ee.ImageCollection("GOOGLE/CLOUD_SCORE_PLUS/V1/S2_HARMONIZED")
-
-
-def ndvi(start, end):
-    c = (ee.ImageCollection("COPERNICUS/S2_HARMONIZED").filterBounds(aoi).filterDate(start, end)
-         .linkCollection(cs, ["cs_cdf"])
-         .map(lambda i: i.updateMask(i.select("cs_cdf").gte(CS_MIN)).normalizedDifference(["B8", "B4"]).rename("ndvi")))
-    return c.median()
-
-
-pre = sample_image(ndvi(*PRE), pts, 10, ["ndvi"]).ndvi.rename("pre")
+pre = sample_image(ndvi_composite(*S2_WINDOWS["pre"]), pts, 10, ["ndvi"]).ndvi.rename("pre")
 rng = np.random.default_rng(42)
 
 
@@ -56,7 +42,7 @@ def boot_diff(y, a, b, n=1000):
 
 L = meta.grp == "landslide"
 for name, (s, e) in POST.items():
-    post = sample_image(ndvi(s, e), pts, 10, ["ndvi"]).ndvi.rename("post")
+    post = sample_image(ndvi_composite(s, e), pts, 10, ["ndvi"]).ndvi.rename("post")
     d = meta[["grp", "area", "d1718"]].join(pre).join(post)
     d["score_ndvi"] = -(d.post - d.pre)
     cov = d[L.reindex(d.index)].dropna(subset=["score_ndvi"]).shape[0] / L.sum()

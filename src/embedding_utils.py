@@ -51,3 +51,21 @@ def embedding_distances(pts, years=(2017, 2018, 2019)):
         va, vb = va / np.linalg.norm(va, axis=1, keepdims=True), vb / np.linalg.norm(vb, axis=1, keepdims=True)
         out[f"d{a % 100}{b % 100}"] = 1 - (va * vb).sum(axis=1)
     return out
+
+
+S2_WINDOWS = {
+    "pre": ("2017-08-01", "2017-11-01"),
+    "postA": ("2017-12-01", "2018-04-01"),
+    "postB": ("2018-04-01", "2018-06-01"),
+}
+CS_MIN = 0.6
+AOI_BOUNDS = [111.0, -8.28, 111.39, -7.93]
+
+
+def ndvi_composite(start, end):
+    """Median NDVI of Sentinel-2 L1C scenes with Cloud Score+ cs_cdf >= CS_MIN."""
+    cs = ee.ImageCollection("GOOGLE/CLOUD_SCORE_PLUS/V1/S2_HARMONIZED")
+    c = (ee.ImageCollection("COPERNICUS/S2_HARMONIZED").filterBounds(ee.Geometry.Rectangle(AOI_BOUNDS)).filterDate(start, end)
+         .linkCollection(cs, ["cs_cdf"])
+         .map(lambda i: i.updateMask(i.select("cs_cdf").gte(CS_MIN)).normalizedDifference(["B8", "B4"]).rename("ndvi")))
+    return c.median()
