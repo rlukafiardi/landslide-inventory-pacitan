@@ -1,0 +1,9 @@
+feature,exists at prediction time,note
+"dNDVI, NDVI windows","yes, after the event","retrospective detection: post-event imagery is the input, no target derived"
+embedding 2018,"yes, after the event","year-long summary; includes the scar period, fine for retrospective detection"
+embedding 2017,partly,"contains Dec 2017, about a month after the event; dropped from the candidates"
+"slope, elev, curvature, twi, spi, aspect",yes,"DEMNAS terrain, not event specific"
+"distriv, distroad",yes,"lines from the 1:25,000 topographic map; roads may be post-event cuts: unknown date"
+geologi,yes,"1:100,000 map from 1992"
+landuse,yes,"1:25,000 polygons cannot hold 100 to 1,000 m2 scars; year unknown"
+"block id, coordinates",no,never a feature: they would let a model memorise the inventory footprint

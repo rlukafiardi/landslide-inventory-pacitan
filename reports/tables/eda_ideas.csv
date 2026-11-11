@@ -1,0 +1,7 @@
+rank,idea,finding behind it
+1,"Neighbourhood statistics of dB and postB (3x3 and 5x5 mean, min, std)","labels are about one pixel off and scars are about 10 pixels wide, while a single-pixel dB already reaches AUC 0.86"
+2,"Land-use class as a false-alarm filter, with dB interactions","false alarms of the naive detector are concentrated in a few classes: 2 (13% of false alarms, 1% of pixels), 10 (30% of false alarms, 8% of pixels), 11 (20% of false alarms, 13% of pixels)"
+3,"Gradient boosting with monotone constraints (slope up, dB down) next to a regularised logistic baseline","few polygons and clumped pixels favour constrained, simple models"
+4,2018 embedding through its principal components or a regularised logistic regression,"components [1, 2, 3] already separate landslides; raw 64 bands risk overfitting few polygons"
+5,Geology class as a target-encoded feature inside each CV training fold,class rates differ by an order of magnitude (see categorical chart); encode inside folds to avoid leakage
+6,Slope mask or flag for pixels below about 5 degrees,the flattest decile of slope holds the lowest rate; check before adding

@@ -1,0 +1,15 @@
+feature,expected,expected_size,why,auc,direction,size,verdict
+slope,+,strong,steeper ground fails more (retrofit: POC slope-only AUC about 0.65 against a random pool),0.7115728172163219,+,strong,match
+dB,-,strong,NDVI Apr-May 2018 minus pre-event drops where a scar removed vegetation,0.1390693443793375,-,strong,match
+dA,-,moderate,"same signal in Dec-Mar, but cloud gaps and noise should make it weaker than dB",0.1948188824960842,-,strong,"direction ok, size differs"
+postB,-,moderate,"scars are bare in Apr-May, so post-event NDVI is lower",0.10889874759331719,-,strong,"direction ok, size differs"
+pre,-,weak,pre-event vegetation barely separates sites (retrofit: POC pre-NDVI-only AUC about 0.6),0.47720199685927406,-,none,surprise (no effect)
+distroad,-,weak,"slides nearer roads: cut slopes, and reporting bias towards people",0.5627980101650001,+,weak,surprise (opposite direction)
+distriv,-,weak,river banks undercut and flood: nearer rivers means more,0.39353760170175767,-,moderate,"direction ok, size differs"
+elev,-,weak,no clear direction; mid-slope belts may dominate,0.5327498748524936,+,weak,surprise (opposite direction)
+twi,+,weak,"wetter convergent sites fail more, but at 10 m the index is noisy",0.5201370896500719,+,none,surprise (no effect)
+spi,+,weak,stream power marks channels; noisy at 10 m,0.7083583159431092,+,strong,"direction ok, size differs"
+planc,-,none,plan curvature at 10 m is noise-dominated,0.4133365985549552,-,weak,surprise
+profc,-,none,profile curvature at 10 m is noise-dominated,0.45241624319400453,-,weak,surprise
+asp_sin,+,none,no aspect preference expected (a monsoon-facing effect would show here or in asp_cos),0.5487489015175041,+,weak,surprise
+asp_cos,+,none,see asp_sin,0.5764138176717802,+,weak,surprise

@@ -1,0 +1,7 @@
+rule,pixels
+"Domain: valid land use with geology, minus 5 likely-unmapped 3 km blocks","50,669 + 431,721 px (Phase 1)"
+"Exclusion ring of 20 m around polygons (not positives, not negatives)","37,929 px in the domain (Phase 1)"
+"Pixels with no cloud-free postA NDVI: keep, median-fill dA/postA and add a missing flag","about 11,687 training px"
+"Pixels with no twi: keep, median-fill and flag","about 1,746 training px"
+Pixels with no pre / dB value: drop,about 36 training px
+Outliers: none removed (rule: robust z above 3.5 is reported only),0 px

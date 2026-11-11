@@ -1,0 +1,9 @@
+column,meaning,unit,source
+label,"1 = pixel centre inside an inventory polygon, 0 = background",0/1,"Samodra et al. 2024 (CC BY 4.0), shifted +8.4 m E, +9.4 m N onto the Sentinel-2 grid"
+pre / postA / postB,"median NDVI, cloud-masked (Cloud Score+ >= 0.6): Aug-Oct 2017 / Dec 2017-Mar 2018 / Apr-May 2018",NDVI,"Sentinel-2 L1C via Earth Engine, 10 m"
+dA / dB,postA - pre / postB - pre (negative = vegetation loss),NDVI diff,derived
+emb 2018 (64 bands),"Satellite Embedding annual vector, year 2018, unit length",unit,"Google Satellite Embedding V1, 10 m"
+"slope, elev, planc, profc, twi, spi, aspect",terrain from DEMNAS,see profile,"Mendeley release (SAGA GIS), 10 m grid"
+"distriv, distroad","distance to river / road line in the 1:25,000 topographic map",m,Mendeley release
+geologi,"lithology class from the 1:100,000 Pacitan geological map (codes only)",class code,Mendeley release
+landuse,"land-use class from the 1:25,000 topographic map (codes 1-13, names unknown)",class code,Mendeley release

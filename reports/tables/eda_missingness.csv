@@ -1,0 +1,7 @@
+column,missing_in_sample,population_px (weighted),population_%,missing_landslide_px,landslide_%
+pre,1,36,0.000%,0,0.000%
+postA,348,"11,687",0.109%,20,0.124%
+postB,0,0,0.000%,0,0.000%
+dA,349,"11,723",0.110%,20,0.124%
+dB,1,36,0.000%,0,0.000%
+twi,49,"1,746",0.016%,0,0.000%

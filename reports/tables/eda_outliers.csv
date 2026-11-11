@@ -1,0 +1,16 @@
+feature,flagged_all_pixels,flagged_landslide_pixels
+pre,0.89%,5.95%
+postA,3.36%,45.30%
+postB,5.49%,55.77%
+dA,0.61%,31.70%
+dB,2.78%,49.67%
+slope,0.03%,0.08%
+elev,0.00%,0.00%
+distriv,2.99%,4.46%
+distroad,3.41%,2.27%
+twi,8.80%,4.08%
+spi,2.79%,0.85%
+planc,5.73%,2.24%
+profc,2.62%,2.33%
+asp_sin,0.00%,0.00%
+asp_cos,0.00%,0.00%
