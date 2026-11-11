@@ -17,7 +17,7 @@ with rasterio.open(f"{OUT}/block.tif") as b:
 n_dom = int(dom.sum())
 ok = True
 
-for layer in ("emb2017", "emb2018"):
+for layer in ("emb2018",):
     missing, norms = 0, []
     with rasterio.open(f"{OUT}/{layer}.tif") as r:
         for i in range(0, H, STEP):

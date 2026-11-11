@@ -57,7 +57,7 @@ UNITS = {"slope": "degrees", "elev": "m a.s.l.", "distriv": "m", "distroad": "m"
          "planc": "1/m", "profc": "1/m", "pre": "NDVI", "postA": "NDVI", "postB": "NDVI", "dA": "NDVI diff", "dB": "NDVI diff",
          "aspect": "degrees", "asp_sin": "sin(aspect)", "asp_cos": "cos(aspect)"}
 NUM = ["pre", "postA", "postB", "dA", "dB", "slope", "elev", "distriv", "distroad", "twi", "spi", "planc", "profc", "asp_sin", "asp_cos"]
-LOGGED = {"spi", "distriv", "distroad"}
+LOGGED = {"distriv", "distroad"}  # spi is already on a log scale in the source, so it is plotted as stored
 
 
 def size_class(a):
@@ -151,7 +151,7 @@ for i, c in enumerate(NUM):
 hist.update_annotations(font_size=11)
 figs["hist_grid"] = styled(hist, "Distribution of every numeric feature: all pixels (grey) and landslide pixels (blue)", height=760, legend=True)
 hist.update_layout(legend=dict(orientation="v", x=0.8, y=0.1, xanchor="left", yanchor="bottom"))
-sections.append(section("Data profile", "Numeric profile on the negative sample (population proxy; weights are uniform within it). Heavy tails in spi and the distances, so they are shown on a log1p axis.",
+sections.append(section("Data profile", "Numeric profile on the negative sample (population proxy; weights are uniform within it). Heavy tails in the two distances, so they are shown on a log1p axis (spi is already log-scaled in the source).",
                         table_html(prof.round(3)) + table_html(cat_prof) + "<div>@@hist_grid@@</div>"))
 
 # ------------------------------------------------------------------ 3. origin, grain, target
@@ -371,7 +371,7 @@ for c in NUM:
 outliers = pd.DataFrame(out_rows, columns=["feature", "flagged_all_pixels", "flagged_landslide_pixels"])
 tables["outliers"] = outliers
 o = outliers.set_index("feature")
-sections.append(section("Outliers", f"Rule: robust z (median and MAD, log1p for spi and distances) above 3.5. Nothing is removed. For the NDVI features the flagged pixels are the signal: {o.loc['dB', 'flagged_landslide_pixels']} of landslide pixels are flagged on dB and {o.loc['postB', 'flagged_landslide_pixels']} on postB, against {o.loc['dB', 'flagged_all_pixels']} and {o.loc['postB', 'flagged_all_pixels']} of all pixels. Terrain features flag few landslide pixels.",
+sections.append(section("Outliers", f"Rule: robust z (median and MAD, log1p for the two distances) above 3.5. Nothing is removed. For the NDVI features the flagged pixels are the signal: {o.loc['dB', 'flagged_landslide_pixels']} of landslide pixels are flagged on dB and {o.loc['postB', 'flagged_landslide_pixels']} on postB, against {o.loc['dB', 'flagged_all_pixels']} and {o.loc['postB', 'flagged_all_pixels']} of all pixels. Terrain features flag few landslide pixels.",
                         table_html(outliers)))
 
 # ------------------------------------------------------------------ 7. space: map and Moran's I
