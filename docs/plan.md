@@ -37,8 +37,9 @@ Decided with the user:
   - Naive: a dNDVI threshold with no ML.
   - Floor: site factors only.
   - Best simple model: dNDVI set + factors (logistic regression).
-- **Candidates**: (a) 2018 embedding + factors, (b) 2018 embedding + embedding change + dNDVI + factors.
-  Pick the simplest one that isn't worse within the noise. If (a) is chosen, the 2017 layer and the v1.0/v1.1 version issue drop out.
+- **Candidates** (revised after the aligned POC re-run): (a) dNDVI + factors, (b) 2018 embedding + factors, (c) 2018 embedding + dNDVI + factors.
+  The embedding change and the 2017 layer are dropped (dNDVI beats the change; version v1.0/v1.1 issue). Pick the simplest one that isn't worse within the noise.
+- **Labels** are shifted onto the Sentinel-2 grid (+8.4 m E, +9.4 m N; src/data/estimate_shift.py).
 - **Models**: logistic regression and random forest without tuning first, then XGBoost with a small grouped-CV search.
   Class imbalance is handled with weights and negative sampling during training (sampling fraction recorded). Prediction runs on all pixels.
 
@@ -52,7 +53,7 @@ b. **Grid check** (`src/data/check_grid.py`): every factor raster has the same C
    pixels per layer.
 c. **Feature download** (`src/ingestion/download_stack.py`): tiled `ee.data.computePixels` into the factor grid (crsTransform
    taken from `map_landuse.tif`).
-   - Layers: 2018 and 2017 embeddings as int8 (×127), plus NDVI pre, postA and postB as float16.
+   - Layers (as built): 2018 and 2017 embeddings as uint8 (×127 + 128), NDVI pre, postA and postB as float32. DONE.
    - Output: one GeoTIFF per layer in `data/interim/`.
    - The loop is resumable, polite, and stops on a quota error (`crawling` skill pattern).
    - First, check the Community-tier limits and the int8 precision loss: on a sample, float vs dequantized must not change the AUC.
