@@ -7,13 +7,14 @@ import numpy as np
 import pandas as pd
 import rasterio
 
+from src.data.constants import SHIFT_E_M, SHIFT_N_M
 from src.cv_utils import blocks, oof, pooled_auc
 
 poc = pd.read_csv("data/processed/features.csv", index_col="pid")
 xy = gpd.GeoSeries(gpd.points_from_xy(poc.lon, poc.lat), index=poc.index, crs=4326).to_crs(32749)
 # landslide points sit in the inventory frame: move them onto the Sentinel-2 grid like the polygons in labels.py
 land = (poc.grp == "landslide").to_numpy()
-pts = list(zip(xy.x + np.where(land, 8.4, 0), xy.y + np.where(land, 9.4, 0)))
+pts = list(zip(xy.x + np.where(land, SHIFT_E_M, 0), xy.y + np.where(land, SHIFT_N_M, 0)))
 with rasterio.open("data/interim/emb2018.tif") as r:
     e18 = (np.array(list(r.sample(pts)), dtype=float) - 128) / 127
 with rasterio.open("data/interim/ndvi.tif") as r:

@@ -1,0 +1,7 @@
+features,folds,AUC,weighted_AP
+all 95 numeric features,random pixels,0.9838601378796348,0.5772878795963567
+all 95 numeric features,3 km blocks,0.9746986457362897,0.5186332019395488
+all 95 numeric features,6 km blocks,0.9759645953667474,0.5267315163644574
+dNDVI + terrain (no embedding),random pixels,0.960984985715173,0.16054573344394082
+dNDVI + terrain (no embedding),3 km blocks,0.9553072781193714,0.14283208967151195
+dNDVI + terrain (no embedding),6 km blocks,0.9540176951742128,0.12727849625960302

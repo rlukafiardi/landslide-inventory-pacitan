@@ -16,15 +16,10 @@ import pandas as pd
 import rasterio
 from rasterio import features
 
+from src.data.constants import B, RING_M, SHIFT_E_M, SHIFT_N_M, UNMAPPED_BLOCKS
+
 FDIR = sys.argv[1]
 OUT = "data/interim"
-B = 300
-RING_M = 20
-# Inventory polygons sit about 12.6 m south-west of the Sentinel-2 / embedding grid (src/data/estimate_shift.py: the vegetation-loss
-# AUC peaks 9.4 m north and 8.4 m east of the polygons; 7.5 to 10.5 m across four regional halves). Applied to the polygons here.
-SHIFT_E_M, SHIFT_N_M = 8.4, 9.4
-# (block row, block col) with an empty polygon set although the lithology-class density predicts >= 4.6 slides
-UNMAPPED_BLOCKS = [(8, 10), (9, 15), (9, 16), (9, 18), (10, 14)]
 
 with rasterio.open(f"{FDIR}/map_landuse.tif") as r:
     valid, tr, crs, H, W = r.read(1) != r.nodata, r.transform, r.crs, r.height, r.width

@@ -10,7 +10,8 @@ import numpy as np
 import pandas as pd
 import rasterio
 
-SHIFT_E_M, SHIFT_N_M = 8.4, 9.4
+from src.data.constants import SHIFT_E_M, SHIFT_N_M
+
 poc = pd.read_csv(sys.argv[1], index_col="pid")
 xy = gpd.GeoSeries(gpd.points_from_xy(poc.lon, poc.lat), index=poc.index, crs=4326).to_crs(32749)
 land = (poc.grp == "landslide").to_numpy()

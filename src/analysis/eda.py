@@ -15,6 +15,7 @@ from plotly.subplots import make_subplots
 
 from src.analysis.html_report import (BLUE, BLUES, GREY, GRID, INK, MUTED, RED, page, plots_html, save_pngs, section, styled,
                                       table_html, tile)
+from src.data.constants import SHIFT_E_M, SHIFT_N_M
 from src.data.load import block_mask
 from src.embedding_utils import auc
 
@@ -88,7 +89,7 @@ H, Wd = label.shape
 n_blocks = len(np.unique(block[train]))
 
 ls = gpd.read_file(f"{FDIR}/landslide_pacitan.gpkg").to_crs(32749)
-ls["geometry"] = ls.geometry.translate(8.4, 9.4)
+ls["geometry"] = ls.geometry.translate(SHIFT_E_M, SHIFT_N_M)
 with rasterio.open("data/interim/label.tif") as r:
     tr = r.transform
 rp = ls.geometry.representative_point()

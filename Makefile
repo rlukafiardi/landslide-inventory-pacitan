@@ -15,3 +15,10 @@ data:
 features:
 	$(RUN) src.features.build
 	$(RUN) src.features.check
+
+# Phase 4: object-metric and fold checks on synthetic scenes and the real split; the random-vs-block leak measurement.
+.PHONY: validation
+validation:
+	$(RUN) src.data.polygon_ids $(FDIR)
+	$(RUN) src.modeling.check_metrics
+	$(RUN) src.modeling.leak_check
