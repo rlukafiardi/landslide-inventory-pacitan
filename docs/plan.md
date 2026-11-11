@@ -17,7 +17,7 @@ Decided with the user:
 - **Grid**: the Mendeley factor-raster grid (EPSG:32749, 10 m, 5815 x 4051, extent of `map_landuse.tif`). Every layer is aligned to it.
 - **Domain**: the area the inventory actually mapped. The paper does not give a footprint and says the inventory started from BPBD citizen reports,
   so completeness is unverified. Default: the valid land-use mask (regency); to be confirmed with the inventory author (Pleiades scene footprint).
-  Until then report object recall on the whole domain and on a conservative sub-domain (3 km blocks within 3 km of a landslide polygon).
+  the inventory author is unreachable, so the fallback is a data rule: drop the 5 likely-unmapped 3 km blocks (empty although the lithology-class density predicts >= 4.6 slides; see CLAUDE.md) and report results with and without them.
   Pixels outside the mapped area must not count as negatives.
 - **Labels**: pixels whose centre falls inside a polygon = 1. A 20 m ring around each polygon is excluded from training and
   pixel metrics, to allow for edge and misregistration uncertainty. Everything else in the domain = 0.
