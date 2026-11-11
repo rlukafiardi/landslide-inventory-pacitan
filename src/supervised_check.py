@@ -20,17 +20,11 @@ import sys
 
 import numpy as np
 import pandas as pd
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.linear_model import LogisticRegression
-from sklearn.model_selection import GroupKFold
-from sklearn.pipeline import make_pipeline
-from sklearn.preprocessing import StandardScaler
-
-from src.embedding_utils import BANDS, auc
-
 import geopandas as gpd
 
-SEED = 42
+from src.cv_utils import MODELS, SEED, block_boot, blocks, oof, pooled_auc
+from src.embedding_utils import BANDS, auc
+
 d = pd.read_csv(sys.argv[1], index_col="pid")
 d = d.assign(dA=d.postA - d.pre, dB=d.postB - d.pre,
              **{f"x_{b}": d[f"e18_{b}"] - d[f"e17_{b}"] for b in BANDS})
@@ -45,75 +39,39 @@ y = (d.grp == "landslide").to_numpy()
 area = d.area.to_numpy()
 
 xy = gpd.GeoSeries(gpd.points_from_xy(d.lon, d.lat), crs=4326).to_crs(32749)
-MODELS = {
-    "logreg": lambda: make_pipeline(StandardScaler(), LogisticRegression(C=1.0, max_iter=2000)),
-    "rf": lambda: RandomForestClassifier(n_estimators=300, min_samples_leaf=3, random_state=SEED, n_jobs=-1),
-}
-
-
-def blocks(size_m):
-    return (np.floor(xy.x / size_m).astype(int).astype(str) + "_" + np.floor(xy.y / size_m).astype(int).astype(str)).to_numpy()
-
-
-def oof(cols, model, groups, labels):
-    pred = np.zeros(len(d))
-    for tr, te in GroupKFold(n_splits=5).split(d, labels, groups):
-        m = MODELS[model]().fit(d.iloc[tr][cols], labels[tr])
-        pred[te] = m.predict_proba(d.iloc[te][cols])[:, 1]
-    return pred
-
-
-def pooled_auc(p, labels=y):
-    return auc(p[labels], p[~labels])
-
-
-def block_boot(preds, groups, fn, n=1000):
-    """95% CI of fn(preds) over bootstrap resamples of whole blocks."""
-    rng = np.random.default_rng(SEED)
-    ub = pd.unique(groups)
-    idx_by = {b: np.flatnonzero(groups == b) for b in ub}
-    out = []
-    for _ in range(n):
-        idx = np.concatenate([idx_by[b] for b in rng.choice(ub, len(ub))])
-        if y[idx].all() or not y[idx].any():
-            continue
-        out.append(fn({k: v[idx] for k, v in preds.items()}, y[idx]))
-    return np.percentile(out, [2.5, 97.5])
-
-
-g3 = blocks(3000)
+g3 = blocks(xy.x, xy.y, 3000)
 print(f"points {len(d)} (landslide {y.sum()}), 3 km blocks: {len(set(g3))}")
 res, verdict = {}, {}
 for model in MODELS:
-    P = {k: oof(c, model, g3, y) for k, c in SETS.items()}
+    P = {k: oof(d, c, model, g3, y) for k, c in SETS.items()}
     res[model] = P
     print(f"\n=== {model}: out-of-fold AUC, 3 km blocks ===")
-    print("  " + " | ".join(f"{k} {pooled_auc(v):.3f}" for k, v in P.items()))
+    print("  " + " | ".join(f"{k} {pooled_auc(v, y):.3f}" for k, v in P.items()))
     print("  by polygon size class        " + "   ".join(f"{k:>5}" for k in ("A", "B", "C")))
     for lab, lo, hi in [("<5 px (<500 m2)", 0, 500), ("5-20 px", 500, 2000), (">20 px (>2000 m2)", 2000, 1e12)]:
         m = ~y | ((area >= lo) & (area < hi))
         print(f"    {lab:<22} n={int((m & y).sum()):<4} " + "   ".join(f"{pooled_auc(P[k][m], y[m]):.3f}" for k in ("A", "B", "C")))
-    ci1 = block_boot(P, g3, lambda p, yy: auc(p["A"][yy], p["A"][~yy]) - auc(p["B"][yy], p["B"][~yy]))
-    ci2 = block_boot(P, g3, lambda p, yy: auc(p["C"][yy], p["C"][~yy]) - max(auc(p["A"][yy], p["A"][~yy]), auc(p["B"][yy], p["B"][~yy])))
-    d1 = pooled_auc(P["A"]) - pooled_auc(P["B"])
-    d2 = pooled_auc(P["C"]) - max(pooled_auc(P["A"]), pooled_auc(P["B"]))
+    ci1 = block_boot(P, g3, y, lambda p, yy: auc(p["A"][yy], p["A"][~yy]) - auc(p["B"][yy], p["B"][~yy]))
+    ci2 = block_boot(P, g3, y, lambda p, yy: auc(p["C"][yy], p["C"][~yy]) - max(auc(p["A"][yy], p["A"][~yy]), auc(p["B"][yy], p["B"][~yy])))
+    d1 = pooled_auc(P["A"], y) - pooled_auc(P["B"], y)
+    d2 = pooled_auc(P["C"], y) - max(pooled_auc(P["A"], y), pooled_auc(P["B"], y))
     print(f"  S1 A - B: {d1:+.3f}, CI [{ci1[0]:+.3f}, {ci1[1]:+.3f}]")
     print(f"  S2 C - max(A, B): {d2:+.3f}, CI [{ci2[0]:+.3f}, {ci2[1]:+.3f}]")
-    perm = oof(SETS["A"], model, g3, np.random.default_rng(SEED).permutation(y))
+    perm = oof(d, SETS["A"], model, g3, np.random.default_rng(SEED).permutation(y))
     perm_auc = pooled_auc(perm, np.random.default_rng(SEED).permutation(y))
     print(f"  S0 label-permutation AUC of A: {perm_auc:.3f}")
     verdict[model] = (abs(perm_auc - 0.5) <= 0.05, ci1[0] > 0, ci2[0] > 0)
 
 print("\nsensitivity to block size, logreg / rf pooled AUC (A | B | C)")
 for km in (1, 5):
-    g = blocks(km * 1000)
+    g = blocks(xy.x, xy.y, km * 1000)
     for model in MODELS:
-        P = {k: oof(SETS[k], model, g, y) for k in ("A", "B", "C")}
-        print(f"  {km} km {model:<6}: " + " | ".join(f"{k} {pooled_auc(v):.3f}" for k, v in P.items()))
+        P = {k: oof(d, SETS[k], model, g, y) for k in ("A", "B", "C")}
+        print(f"  {km} km {model:<6}: " + " | ".join(f"{k} {pooled_auc(v, y):.3f}" for k, v in P.items()))
 
 print("\npost-hoc controls, 3 km blocks, pooled AUC (logreg | rf)")
 for name, cols in CONTROLS.items():
-    r = [pooled_auc(oof(cols, m, g3, y)) for m in MODELS]
+    r = [pooled_auc(oof(d, cols, m, g3, y), y) for m in MODELS]
     print(f"  {name:<28} {r[0]:.3f} | {r[1]:.3f}")
 
 s0 = all(v[0] for v in verdict.values())
