@@ -12,7 +12,9 @@ POC: do Satellite Embedding change features (2018 vs 2017) detect Cempaka landsl
 ## Decisions
 - 2026-11-11: Project created. Type: modelling, spatial. Tools: geopandas, shapely, rasterio, pandas, matplotlib, earthengine-api (uv). scikit-learn added at the modelling step.
 - 2026-11-11: Used the public Samodra inventory as labels (no need for the friend's data). Size check (`src/inventory_check.py`) done; pass/stop criteria unchanged. Report metrics at polygon and pixel level, split by size class (<5 px, 5 to 20 px, >20 px). Slice must shrink from all of Pacitan to one or two sub-districts.
+- 2026-11-11: Embedding change check (cosine distance 2017->2018, point level, 743 landslide vs 743 background, AUC): random bg 0.725; slope+elevation matched 0.720; + land-use matched 0.705 (size classes 0.52 / 0.73 / 0.83 for <5 px / 5-20 px / >20 px). 2018->2019 control ~0.50. Risk still open: 2017 layer is v1.1, 2018 is v1.0, and background 17->18 change is ~2.1x a normal year (M3 fails every run).
+- 2026-11-11: dNDVI baseline (S2 L1C + Cloud Score+, pre Aug-Oct 2017) on the same points: post Dec17-Mar18 AUC 0.698 (cloud-limited, tie with embeddings 0.704, diff +0.007, CI [-0.021, +0.037]); post Apr-May18 AUC 0.790, beats embeddings by 0.085 (CI [-0.116, -0.057]). Which post window counts as primary was not fixed beforehand; B2 should be read as requiring the CI to exclude zero. Unsupervised embedding distance is no better than dNDVI. Supervised use of embeddings untested.
 
 ## Status
-- Works: scaffold, private repo (rlukafiardi/landslide-inventory-pacitan), inventory downloaded and size-checked.
-- Next, riskiest first: (1) done: inventory found; (2) done: size check; (3) open, needs `earthengine authenticate` with the personal account: do 2017 vs 2018 embeddings change at known scars vs random non-landslide points; (4) usable Sentinel-2 scenes Dec 2017 to early 2018.
+- Works: scaffold, private repo (rlukafiardi/landslide-inventory-pacitan), inventory downloaded and size-checked, Earth Engine access (project <earthengine-project>; `.env` holds it and SSL_CERT_FILE), checks in src/ (embedding_change_check, matched_background_check, s2_dndvi_check).
+- Next, riskiest first: (1) done: inventory found; (2) done: size check; (3) done, see Decisions: weak signal, no better than dNDVI; (4) usable Sentinel-2 scenes Dec 2017 to early 2018.
