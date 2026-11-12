@@ -21,7 +21,7 @@ Block cross-validation (3 km blocks) on the training blocks, models compared at 
 ## Deliverable
 `data/processed/candidates_cempaka_pacitan.gpkg` (not committed): 5,865 candidate objects, ranked by probability, in two layers: `candidates_s2_grid` (where the model works) and
 `candidates_inventory_frame` (shifted back by -8.4 m E, -9.4 m N to overlay the manual inventory as published). Review the 1,678 large objects (20 pixels or more) first.
-Overview: `reports/figures/candidates_map.png`.
+Maps: `reports/figures/candidates_map.png` (all candidates) and `reports/figures/test_blocks_map.png` (six held-out blocks: reference polygons, true objects, false alarms); both are in the report.
 
 ## Data sources and credit
 - Labels and site factors (slope, elevation, rivers, roads, land use, lithology): Samodra et al. 2024, Mendeley Data, DOI 10.17632/vrtx3w6mjd.1, CC BY 4.0 (the article is CC BY-NC).

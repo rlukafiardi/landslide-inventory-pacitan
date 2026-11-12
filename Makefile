@@ -43,4 +43,5 @@ rehearsal:
 deliver:
 	$(RUN) src.delivery.candidates
 	$(RUN) src.delivery.overview_map
+	export LANDSLIDE_FINAL_EVAL=1 && $(RUN) src.delivery.test_map
 	$(RUN) src.analysis.modeling_report

@@ -4,6 +4,9 @@ Inputs: reports/tables/{test_results,test_curve,rehearsal_results,rehearsal_curv
         stage2_results,prev_raw,post_raw,ablation}.csv, data/interim/{review_key,review_answers}.csv (aggregated counts only).
 Usage: python -m src.analysis.modeling_report
 """
+import base64
+import html
+
 import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
@@ -35,6 +38,11 @@ def recall_at_precision(curve, p=0.30):
 
 
 r30_test, r30_oof = recall_at_precision(tcurve), recall_at_precision(ocurve)
+
+
+def image(path, alt):
+    """A PNG embedded in the page, so the report is one file."""
+    return f'<img alt="{html.escape(alt)}" style="max-width:100%;height:auto" src="data:image/png;base64,{base64.b64encode(Path(path).read_bytes()).decode()}">'
 
 figs = {}
 # 1 criterion
@@ -150,6 +158,13 @@ sections = [
             "<div>@@criterion@@</div>" + table_html(res) +
             f"<p>Test blocks: {int(c.polygons_all)} inventory polygons, {n_test_poly} of 500 m2 or more. The model flagged {int(c.objects):,} objects, {int(c.true_objects)} of them true. "
             "One score on the frozen model and the operating point chosen from the out-of-fold repeats; nothing was tuned on these blocks.</p>"),
+    section("Where the model flags", "The candidates are spread over the steep interior; on the test blocks the reference polygons are mostly covered by true objects, with scattered small false alarms around them.",
+            image("reports/figures/candidates_map.png", "Overview map of the candidates") +
+            "<p>Overview of all candidates (the GeoPackage deliverable). Test blocks are outlined.</p>" +
+            image("reports/figures/test_blocks_map.png", "Six test blocks: reference polygons, true objects and false alarms") +
+            "<p>The six test blocks with the most reference polygons (one rule, fixed before looking at outcomes; not a hand-picked set). "
+            "In block 613 the long blue object along the river counts as true only because one end touches a polygon: the \"touches\" rule favours long objects, "
+            "which is why strict recall is reported next to precision.</p>"),
     section("Against the baselines", f"At similar recall the chosen model needs about a third of the review effort and recovers the polygon shape far better (strict recall {pct(test.loc['c_hgb', 'strict_recall_ge5'])} against "
             f"{pct(test.loc['simple_logreg', 'strict_recall_ge5'])} and {pct(test.loc['naive_dBmin5', 'strict_recall_ge5'])}).",
             "<div>@@workload@@</div><p>This reviewer-workload view is a secondary framing added after the result; the criterion itself is unchanged.</p>"),
