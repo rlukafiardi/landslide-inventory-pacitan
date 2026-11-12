@@ -48,6 +48,11 @@ With and without `distroad` and `landuse` (they carry reporting signal). Results
 Identical folds for every model in a repeat. For each pair: difference in precision at 80% recall and in weighted average precision,
 repeats won (of 5), and a 95% interval from resampling whole blocks. A difference counts only when the interval excludes zero and the
 model wins at least 4 of 5 repeats. Phase 5 gate: the chosen model beats the best simple baseline by more than that noise on precision at 80% recall.
+**Geometry guard (added 2026-11-12, after a result; approved by the user):** object precision with the "touches a polygon or ring" rule rewards
+fewer, bigger merged objects. A candidate that changes object geometry (post-processing, a second stage, a new object rule) counts only
+if, at its operating point, strict recall (IoU >= 0.3, polygons >= 5 px) and the share of flagged pixels on a polygon or its ring are both
+at least those of the stage-1 reference. Trigger: option B's double-threshold objects raised object precision from 7.8% to 14.1% while
+strict recall fell from 64% to 31% and the on-slide pixel share from 23.8% to 8.7%. The 30% target is unchanged.
 
 ## Evidence behind the design (smoke tests, not results)
 - Random vs block folds: `reports/tables/leak_check.csv`.
