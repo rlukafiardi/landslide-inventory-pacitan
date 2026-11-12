@@ -36,6 +36,8 @@ VARIANTS = {
     "no_landuse": (minus("landuse"), "c_hgb"),
     "plus_ndvi_prev": (SETS["c"] + GROUPS["ndvi_prev"], "c_hgb"),  # option A: the year-before NDVI (normal seasonal swing)
     "a_plus_ndvi_prev": (SETS["a"] + GROUPS["ndvi_prev"], "a_hgb"),
+    "plus_ndvi_post": (SETS["c"] + GROUPS["ndvi_post"], "c_hgb"),  # option A2: persistence one and two years after the event (retrospective)
+    "a_plus_ndvi_post": (SETS["a"] + GROUPS["ndvi_post"], "a_hgb"),
 }
 DEFAULT = [v for v in VARIANTS if v.startswith("no_")]
 

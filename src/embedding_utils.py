@@ -63,6 +63,11 @@ S2_WINDOWS_PREV = {
     "pre16": ("2016-08-01", "2016-11-01"),
     "postB17": ("2017-04-01", "2017-06-01"),
 }
+# the same season in the two years after the event (option A2: scars stay bare, fields cycle); retrospective use only
+S2_WINDOWS_POST = {
+    "postC": ("2019-04-01", "2019-06-01"),
+    "postD": ("2020-04-01", "2020-06-01"),
+}
 CS_MIN = 0.6
 AOI_BOUNDS = [111.0, -8.28, 111.39, -7.93]
 

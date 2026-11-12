@@ -4,6 +4,7 @@ Layers (one GeoTIFF each in data/interim/):
   emb2017, emb2018  64 bands, uint8 = round(value * 127) + 128, nodata 0   (Satellite Embedding annual; value = (v - 128) / 127)
   ndvi              3 bands (pre, postA, postB), float32, nodata -9999 (Sentinel-2 L1C + Cloud Score+ median NDVI)
   ndvi_prev         2 bands (pre16, postB17): the same seasons one year earlier, same recipe
+  ndvi_post         2 bands (postC, postD): Apr-May 2019 and 2020, same recipe (needs imagery 1-2 years after the event)
 Tiles (560 px for embeddings, 800 for NDVI) stay under the 48 MiB computePixels limit; only tiles that touch the valid land-use
 mask are requested; finished tiles are listed in <layer>.done.json, so a rerun resumes. Sequential and polite; stops
 on the first quota or permission error. Usage: python -m src.ingestion.download_stack <layer> [--pilot N]
@@ -18,7 +19,7 @@ import numpy as np
 import rasterio
 from rasterio.windows import Window
 
-from src.embedding_utils import BANDS, COLLECTION, S2_WINDOWS, S2_WINDOWS_PREV, init_ee, ndvi_composite
+from src.embedding_utils import BANDS, COLLECTION, S2_WINDOWS, S2_WINDOWS_POST, S2_WINDOWS_PREV, init_ee, ndvi_composite
 
 FDIR = "data/spatial/mendeley_vrtx3w6mjd"
 OUT = "data/interim"
@@ -34,13 +35,13 @@ if layer in ("emb2017", "emb2018"):
     year = int(layer[3:])
     names, dtype, nodata, bytes_px, TILE = BANDS, "uint8", 0, 2, 560  # the server counted 2 bytes per uint8 value
 else:
-    WINDOWS = S2_WINDOWS_PREV if layer == "ndvi_prev" else S2_WINDOWS
+    WINDOWS = {"ndvi": S2_WINDOWS, "ndvi_prev": S2_WINDOWS_PREV, "ndvi_post": S2_WINDOWS_POST}[layer]
     names, dtype, nodata, bytes_px, TILE = list(WINDOWS), "float32", -9999.0, 4, 800
 assert TILE * TILE * len(names) * bytes_px <= 48 * 2**20, "tile exceeds the computePixels request limit"
 
 
 def image():
-    if layer in ("ndvi", "ndvi_prev"):
+    if layer in ("ndvi", "ndvi_prev", "ndvi_post"):
         return ee.Image.cat([ndvi_composite(*WINDOWS[k]).rename(k) for k in names]).unmask(nodata).toFloat()
     img = ee.ImageCollection(COLLECTION).filterDate(f"{year}-01-01", f"{year + 1}-01-01").mosaic().select(names)
     return img.multiply(127).round().clamp(-127, 127).add(128).unmask(nodata).toUint8()

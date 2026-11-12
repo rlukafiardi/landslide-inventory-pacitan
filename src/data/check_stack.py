@@ -35,7 +35,7 @@ for layer in ("emb2018",):
     print(f"{layer}: domain pixels without data {missing:,} of {n_dom:,}; norm mean {n.mean():.3f} min {n.min():.3f} max {n.max():.3f} "
           f"-> {'PASS' if good else 'FAIL'}")
 
-for layer in ("ndvi", "ndvi_prev"):
+for layer in ("ndvi", "ndvi_prev", "ndvi_post"):
     with rasterio.open(f"{OUT}/{layer}.tif") as r:
         names = r.descriptions
         gap = np.zeros(len(names), int)
