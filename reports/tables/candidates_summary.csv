@@ -1,0 +1,9 @@
+source,size_class,overlaps_inventory,candidates
+final_test,large (20 px or more),False,282
+final_test,large (20 px or more),True,77
+final_test,small (3 to 19 px),False,773
+final_test,small (3 to 19 px),True,22
+oof_train,large (20 px or more),False,1041
+oof_train,large (20 px or more),True,278
+oof_train,small (3 to 19 px),False,3305
+oof_train,small (3 to 19 px),True,87
