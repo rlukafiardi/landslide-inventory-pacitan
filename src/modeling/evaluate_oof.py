@@ -26,6 +26,7 @@ SHARES = [0.0005, 0.001, 0.002, 0.003, 0.005, 0.0075, 0.01, 0.015, 0.02, 0.03, 0
 A_MINS = (1, 2, 3, 5)
 TARGETS = (0.7, 0.8, 0.9)
 N_BOOT, SEED = 1000, 7
+RAW_OUT = "reports/tables/modeling_results_raw.csv"  # `--out <csv>` redirects it (the ablation must not overwrite the main table)
 CLS = ["<5 px", "5-20 px", ">20 px"]
 
 with rasterio.open(f"{INTERIM}/poly_id.tif") as r:
@@ -150,10 +151,15 @@ def main(names):
         for tg in TARGETS:
             np.save(OOF / f"boot_{name}_{tg}.npy", boot[tg])
     res = pd.DataFrame(rows)
-    res.to_csv("reports/tables/modeling_results_raw.csv", index=False)
+    res.to_csv(RAW_OUT, index=False)
     print(res[res.recall_target == 0.8][["config", "repeat", "precision_at_target", "reached", "flagged_share", "recall_ge5", "weighted_pixel_AP"]].round(3).to_string(index=False))
 
 
 if __name__ == "__main__":
-    names = sys.argv[1:] or sorted(p.stem for p in OOF.glob("*.npy") if not p.stem.startswith(("boot_", "counts_")))
+    args = sys.argv[1:]
+    if "--out" in args:
+        i = args.index("--out")
+        RAW_OUT = args[i + 1]
+        args = args[:i] + args[i + 2:]
+    names = args or sorted(p.stem for p in OOF.glob("*.npy") if not p.stem.startswith(("boot_", "counts_", "abl_")))
     main(names)

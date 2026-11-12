@@ -1,0 +1,8 @@
+variant,precision_at_80_recall,diff_vs_full,ci_low,ci_high,flagged_share,weighted_pixel_AP,interval_excludes_zero
+c_hgb,0.078,0.0,0.0,0.0,0.01,0.542,False
+abl_no_ndvi_pixel,0.067,-0.011,-0.021,0.013,0.015,0.533,False
+abl_no_ndvi_nbr,0.059,-0.019,-0.042,0.007,0.01,0.494,False
+abl_no_terrain,0.063,-0.015,-0.024,0.017,0.015,0.536,False
+abl_no_site_cat,0.082,0.004,-0.015,0.025,0.01,0.523,False
+abl_no_distroad,0.078,0.0,-0.013,0.019,0.01,0.541,False
+abl_no_landuse,0.071,-0.007,-0.027,0.013,0.01,0.542,False
