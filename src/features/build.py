@@ -27,8 +27,8 @@ INTERIM = "data/interim"
 HALO = ANOM // 2
 TILE = 512
 N_NEG, SEED = 400_000, 42
-# constants that stand in for NaN neighbours inside the neighbourhood filters (rounded medians of background pixels in the training blocks)
-NBR_FILL = {"dB": 0.09, "postB": 0.68, "dprev": 0.10, "dd": 0.01, "dP": 0.09}
+# constants that stand in for NaN neighbours inside the neighbourhood filters (rounded EDA medians of background pixels)
+NBR_FILL = {"dB": 0.09, "postB": 0.68}
 LOG1P = ("distriv", "distroad")  # spi is already on a log scale in the source (range -8 to 7)
 FACTORS = ["slope", "elev", "distriv", "distroad", "twi", "spi", "planc", "profc", "geologi", "landuse"]
 
@@ -53,32 +53,8 @@ def feature_window(row0, col0, h, w):
     ndvi[ndvi == -9999.0] = np.nan
     pre, post_a, post_b = ndvi
     d_a, d_b = post_a - pre, post_b - pre
-    prev, _ = _read(f"{INTERIM}/ndvi_prev.tif", halo_win, boundless=True, fill=-9999.0)
-    prev[prev == -9999.0] = np.nan
-    pre16, post17 = prev
-    d_prev = post17 - pre16
-    dd = d_b - d_prev  # this event's change minus the normal seasonal change one year earlier
-    later, _ = _read(f"{INTERIM}/ndvi_post.tif", halo_win, boundless=True, fill=-9999.0)
-    later[later == -9999.0] = np.nan
-    post_c, post_d = later
-    with np.errstate(all="ignore"):
-        d_p = np.nanmean(np.stack([post_c - pre, post_d - pre]), axis=0)  # NaN only where both years are missing
     c = (slice(HALO, HALO + h), slice(HALO, HALO + w))
-    out = {"pre": pre[c], "postA": post_a[c], "postB": post_b[c], "dA": d_a[c], "dB": d_b[c],
-           "pre16": pre16[c], "postB17": post17[c], "dprev": d_prev[c], "dpre": (pre - pre16)[c], "dd": dd[c]}
-    for base, arr, wins in (("dd", dd, WIN), ("dprev", d_prev, (5,))):
-        filled = np.where(np.isnan(arr), NBR_FILL[base], arr)
-        for win in wins:
-            mean, mn, _ = nbr_stats(filled, win)
-            out[f"{base}_mean{win}"] = mean[c]
-            if base == "dd":
-                out[f"dd_min{win}"] = mn[c]
-    out["prev_missing"] = np.isnan(d_prev[c]).astype("float32")
-    out.update({"postC": post_c[c], "postD": post_d[c], "dC": (post_c - pre)[c], "dD": (post_d - pre)[c], "rec": (post_c - post_b)[c], "dP": d_p[c]})
-    filled = np.where(np.isnan(d_p), NBR_FILL["dP"], d_p)
-    for win in WIN:
-        mean, mn, _ = nbr_stats(filled, win)
-        out[f"dP_mean{win}"], out[f"dP_min{win}"] = mean[c], mn[c]
+    out = {"pre": pre[c], "postA": post_a[c], "postB": post_b[c], "dA": d_a[c], "dB": d_b[c]}
     for base, arr in (("dB", d_b), ("postB", post_b)):
         filled = np.where(np.isnan(arr), NBR_FILL[base], arr)
         for win in WIN:

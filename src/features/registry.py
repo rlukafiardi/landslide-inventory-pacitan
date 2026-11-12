@@ -75,34 +75,6 @@ FEATURES: list[Feature] = [
     *[Feature(f"e18_{b}", "emb", "Google Satellite Embedding V1 annual, 2018", f"embedding band {b} (dequantized, unit-length vector)", "?",
               "learned features; components 1 to 3 separate landslides (EDA AUC 0.31, 0.70, 0.17)") for b in BANDS],
 ]
-PREV_SRC = "Sentinel-2 L1C + Cloud Score+ (one year before the event)"
-PREV_MISSING = "about 10% of pixels (single-satellite year, clouds): NaN for trees, median-fill + prev_missing flag for linear"
-FEATURES += [
-    Feature("pre16", "ndvi_prev", PREV_SRC, "median NDVI Aug-Oct 2016", "?", "baseline for the normal seasonal swing", PREV_MISSING),
-    Feature("postB17", "ndvi_prev", PREV_SRC, "median NDVI Apr-May 2017", "?", "same season as postB, one year earlier", PREV_MISSING),
-    Feature("dprev", "ndvi_prev", "derived", "postB17 - pre16: the normal seasonal change one year earlier", "?",
-            "cyclic farmland (terraces, harvest) swings every year, forest and scars do not; sign differs by crop", PREV_MISSING),
-    Feature("dpre", "ndvi_prev", "derived", "pre - pre16: dry-season NDVI, event year minus the year before", "?",
-            "interannual drift of the dry-season baseline; large on managed land", PREV_MISSING),
-    Feature("dd", "ndvi_prev", "derived", "dB - dprev: this event's change minus the normal seasonal change", "-",
-            "a one-off scar loses more than the normal swing, cyclic farmland cancels: the cleaned vegetation-loss signal", PREV_MISSING),
-    *[Feature(f"dd_{s}{w}", "ndvi_prev", "derived", f"{'mean' if s == 'mean' else 'minimum'} of dd in a {w}x{w} window ({w * 10} m)", "-",
-              "window version of dd, robust to the one-pixel label shift", PREV_MISSING) for w in WIN for s in ("mean", "min")],
-    Feature("dprev_mean5", "ndvi_prev", "derived", "mean of dprev in a 5x5 window (50 m)", "?", "local farmland rhythm", PREV_MISSING),
-    Feature("prev_missing", "ndvi_prev", "derived", "1 where pre16 or postB17 had no cloud-free observation", "?", "missingness is cloud-driven, not label-driven"),
-]
-POST_SRC = "Sentinel-2 L1C + Cloud Score+ (1 and 2 years after the event)"
-FEATURES += [
-    Feature("postC", "ndvi_post", POST_SRC, "median NDVI Apr-May 2019", "-", "a scar is still bare or only part-regrown a year later, farmland has cycled back"),
-    Feature("postD", "ndvi_post", POST_SRC, "median NDVI Apr-May 2020", "-", "same, two years later"),
-    Feature("dC", "ndvi_post", "derived", "postC - pre: vegetation change one year after the event", "-", "persistent loss, as opposed to a seasonal swing"),
-    Feature("dD", "ndvi_post", "derived", "postD - pre: vegetation change two years after the event", "-", "persistent loss, two years"),
-    Feature("rec", "ndvi_post", "derived", "postC - postB: recovery from Apr-May 2018 to Apr-May 2019", "+",
-            "first guess was '-' (scars regrow slowly); observed AUC 0.84: scars were bare in 2018, so the rebound is large and rec mostly mirrors postB"),
-    Feature("dP", "ndvi_post", "derived", "mean of dC and dD (whichever exist)", "-", "the persistent-loss signal, less sensitive to one odd year"),
-    *[Feature(f"dP_{s}{w}", "ndvi_post", "derived", f"{'mean' if s == 'mean' else 'minimum'} of dP in a {w}x{w} window ({w * 10} m)", "-",
-              "window version of dP, robust to the one-pixel label shift") for w in WIN for s in ("mean", "min")],
-]
 NAMES = [f.name for f in FEATURES]
 GROUPS = {g: [f.name for f in FEATURES if f.group == g] for g in dict.fromkeys(f.group for f in FEATURES)}
 CATEGORICAL = ["geologi", "landuse"]
@@ -115,8 +87,6 @@ def catalogue() -> pd.DataFrame:
             continue
         name = "e18_A00 .. e18_A63 (64 bands)" if f.name == "e18_A00" else f.name
         rows.append((name, f.group, f.source, f.definition if f.name != "e18_A00" else "Satellite Embedding 2018, bands A00 to A63, dequantized",
-                     f.sign, f.hypothesis, f.missing,
-                     "only 1 to 2 years after the event (retrospective inventory, not rapid mapping)" if f.group == "ndvi_post"
-                     else "yes: built from imagery and maps available after the event", "no label, coordinate or block id used"))
+                     f.sign, f.hypothesis, f.missing, "yes: built from imagery and maps available after the event", "no label, coordinate or block id used"))
     return pd.DataFrame(rows, columns=["feature", "group", "source", "definition", "expected_sign", "hypothesis", "missing_handling",
                                        "exists_at_prediction_time", "leakage_note"])
