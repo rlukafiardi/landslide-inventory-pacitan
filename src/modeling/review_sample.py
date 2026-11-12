@@ -35,7 +35,7 @@ MIN_PX, N_FA, N_CTRL, CHIP, SEED = 20, 30, 10, 64, 11
 model, rep = NAME.rsplit("_r", 1)
 raw = pd.read_csv("reports/tables/modeling_results_raw.csv")
 op = raw[(raw.config == model) & (raw.repeat == int(rep)) & (raw.recall_target == 0.8)].iloc[0]
-THR, AMIN = float(op.thr), int(op.a_min)
+THR, AMIN = np.float64(op.thr), int(op.a_min)  # np.float64, not float: see the NumPy 2 note in stage2.py
 
 
 def read(path):

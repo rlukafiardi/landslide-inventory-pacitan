@@ -21,7 +21,7 @@ NAME = sys.argv[1] if len(sys.argv) > 1 else "c_hgb_r0"
 model, rep = NAME.rsplit("_r", 1)
 raw = pd.read_csv("reports/tables/modeling_results_raw.csv")
 op = raw[(raw.config == model) & (raw.repeat == int(rep)) & (raw.recall_target == 0.8)].iloc[0]
-THR, AMIN = float(op.thr), int(op.a_min)
+THR, AMIN = np.float64(op.thr), int(op.a_min)  # np.float64, not float: see the NumPy 2 note in stage2.py
 print(f"{NAME}: threshold {THR:.3f}, a_min {AMIN}, precision {op.precision_at_target:.3f}, recall >=5 px {op.recall_ge5:.3f}")
 
 
