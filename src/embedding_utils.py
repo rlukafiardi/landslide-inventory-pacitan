@@ -58,6 +58,11 @@ S2_WINDOWS = {
     "postA": ("2017-12-01", "2018-04-01"),
     "postB": ("2018-04-01", "2018-06-01"),
 }
+# the same seasons one year earlier (pre-event): the normal seasonal swing of each pixel (option A, cyclic farmland vs one-off scars)
+S2_WINDOWS_PREV = {
+    "pre16": ("2016-08-01", "2016-11-01"),
+    "postB17": ("2017-04-01", "2017-06-01"),
+}
 CS_MIN = 0.6
 AOI_BOUNDS = [111.0, -8.28, 111.39, -7.93]
 

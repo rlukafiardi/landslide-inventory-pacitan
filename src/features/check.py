@@ -59,6 +59,11 @@ with rasterio.open(f"{INTERIM}/ndvi.tif") as r:
     nd = r.read().astype("float32")
 nd[nd == -9999.0] = np.nan
 dB, postB = nd[2] - nd[0], nd[2]
+with rasterio.open(f"{INTERIM}/ndvi_prev.tif") as r:
+    pv = r.read().astype("float32")
+pv[pv == -9999.0] = np.nan
+dprev = pv[1] - pv[0]
+dd = dB - dprev
 rng = np.random.default_rng(SEED)
 sel = t.sample(300, random_state=SEED)
 H, W = dB.shape
@@ -78,6 +83,15 @@ for _, p in sel.iterrows():
                     worst = max(worst, abs(p[f"{base}_{stat}{win}"] - fn(patch)))
                 continue
             worst = max(worst, abs(got - want))
+    for base, arr, wins in (("dd", dd, WIN), ("dprev", dprev, (5,))):
+        pad = np.pad(arr, ANOM, mode="edge")
+        for win in wins:
+            h = win // 2
+            patch = pad[r0 + ANOM - h: r0 + ANOM + h + 1, c0 + ANOM - h: c0 + ANOM + h + 1]
+            patch = np.where(np.isnan(patch), NBR_FILL[base], patch)
+            worst = max(worst, abs(p[f"{base}_mean{win}"] - patch.mean()))
+            if base == "dd":
+                worst = max(worst, abs(p[f"dd_min{win}"] - patch.min()))
 report("C4", worst < 1e-4, f"max abs difference to a plain-loop recomputation on 300 pixels: {worst:.2g}")
 # C5
 off = audit[~audit.sign_ok]

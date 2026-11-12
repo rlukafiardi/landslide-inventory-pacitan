@@ -75,6 +75,22 @@ FEATURES: list[Feature] = [
     *[Feature(f"e18_{b}", "emb", "Google Satellite Embedding V1 annual, 2018", f"embedding band {b} (dequantized, unit-length vector)", "?",
               "learned features; components 1 to 3 separate landslides (EDA AUC 0.31, 0.70, 0.17)") for b in BANDS],
 ]
+PREV_SRC = "Sentinel-2 L1C + Cloud Score+ (one year before the event)"
+PREV_MISSING = "about 10% of pixels (single-satellite year, clouds): NaN for trees, median-fill + prev_missing flag for linear"
+FEATURES += [
+    Feature("pre16", "ndvi_prev", PREV_SRC, "median NDVI Aug-Oct 2016", "?", "baseline for the normal seasonal swing", PREV_MISSING),
+    Feature("postB17", "ndvi_prev", PREV_SRC, "median NDVI Apr-May 2017", "?", "same season as postB, one year earlier", PREV_MISSING),
+    Feature("dprev", "ndvi_prev", "derived", "postB17 - pre16: the normal seasonal change one year earlier", "?",
+            "cyclic farmland (terraces, harvest) swings every year, forest and scars do not; sign differs by crop", PREV_MISSING),
+    Feature("dpre", "ndvi_prev", "derived", "pre - pre16: dry-season NDVI, event year minus the year before", "?",
+            "interannual drift of the dry-season baseline; large on managed land", PREV_MISSING),
+    Feature("dd", "ndvi_prev", "derived", "dB - dprev: this event's change minus the normal seasonal change", "-",
+            "a one-off scar loses more than the normal swing, cyclic farmland cancels: the cleaned vegetation-loss signal", PREV_MISSING),
+    *[Feature(f"dd_{s}{w}", "ndvi_prev", "derived", f"{'mean' if s == 'mean' else 'minimum'} of dd in a {w}x{w} window ({w * 10} m)", "-",
+              "window version of dd, robust to the one-pixel label shift", PREV_MISSING) for w in WIN for s in ("mean", "min")],
+    Feature("dprev_mean5", "ndvi_prev", "derived", "mean of dprev in a 5x5 window (50 m)", "?", "local farmland rhythm", PREV_MISSING),
+    Feature("prev_missing", "ndvi_prev", "derived", "1 where pre16 or postB17 had no cloud-free observation", "?", "missingness is cloud-driven, not label-driven"),
+]
 NAMES = [f.name for f in FEATURES]
 GROUPS = {g: [f.name for f in FEATURES if f.group == g] for g in dict.fromkeys(f.group for f in FEATURES)}
 CATEGORICAL = ["geologi", "landuse"]

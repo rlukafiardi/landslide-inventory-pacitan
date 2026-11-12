@@ -1,10 +1,11 @@
-"""Phase 5: ablation of the chosen model (c_hgb: all features, boosting) by feature group and by two reporting-signal features.
+"""Phase 5: variants of the chosen model (c_hgb: all features, boosting): one group or feature removed, or a new group added.
 
-Each variant refits c_hgb with the same tuned parameters on the same block folds of one repeat, minus one group or feature, and writes
-data/interim/oof/abl_<variant>_r<seed>.npy (same format as oof.py; the `abl_` prefix keeps them out of the default evaluation).
+Each variant refits boosting with the tuned parameters of its base config (c_hgb, or a_hgb for the a-based variant) on the same block
+folds of one repeat, and writes data/interim/oof/abl_<variant>_r<seed>.npy (same format as oof.py; the `abl_` prefix keeps them out of
+the default evaluation). Hyperparameters are not retuned per variant, so a difference is the features, not the tuning.
 Evaluate with: python -m src.modeling.evaluate_oof --out reports/tables/ablation_raw.csv c_hgb_r<seed> abl_<variant>_r<seed> ...
-then python -m src.modeling.ablation_report. Hyperparameters were tuned on the full feature set and are not retuned per variant.
-Usage: python -m src.modeling.ablate <seed>
+then python -m src.modeling.ablation_report <seed>.
+Usage: python -m src.modeling.ablate <seed> [variant ...]   (default: the six "no_*" variants)
 """
 import sys
 import time
@@ -20,36 +21,46 @@ from src.features.registry import GROUPS, NAMES
 from src.modeling.folds import block_folds, fold_of
 from src.modeling.prep import SETS, design, load_params, make_model
 
+
+def minus(*drop):
+    return [c for c in SETS["c"] if c not in drop]
+
+
+# name -> (columns, base config whose tuned parameters are used)
 VARIANTS = {
-    "no_ndvi_pixel": GROUPS["ndvi_pixel"],
-    "no_ndvi_nbr": GROUPS["ndvi_nbr"],
-    "no_terrain": GROUPS["terrain"],
-    "no_site_cat": GROUPS["site_cat"],
-    "no_distroad": ["distroad"],
-    "no_landuse": ["landuse"],
+    "no_ndvi_pixel": (minus(*GROUPS["ndvi_pixel"]), "c_hgb"),
+    "no_ndvi_nbr": (minus(*GROUPS["ndvi_nbr"]), "c_hgb"),
+    "no_terrain": (minus(*GROUPS["terrain"]), "c_hgb"),
+    "no_site_cat": (minus(*GROUPS["site_cat"]), "c_hgb"),
+    "no_distroad": (minus("distroad"), "c_hgb"),
+    "no_landuse": (minus("landuse"), "c_hgb"),
+    "plus_ndvi_prev": (SETS["c"] + GROUPS["ndvi_prev"], "c_hgb"),  # option A: the year-before NDVI (normal seasonal swing)
+    "a_plus_ndvi_prev": (SETS["a"] + GROUPS["ndvi_prev"], "a_hgb"),
 }
+DEFAULT = [v for v in VARIANTS if v.startswith("no_")]
 
 if __name__ == "__main__":
     seed = int(sys.argv[1])
+    chosen = sys.argv[2:] or DEFAULT
     OUT = Path(INTERIM) / "oof"
     t0 = time.time()
     table = pd.read_parquet(f"{INTERIM}/features_train.parquet")
     y = table.y.to_numpy() == 1
     folds = block_folds(seed)
     tfold = fold_of(table.row.to_numpy(), table.col.to_numpy(), folds)
-    params = load_params()["c_hgb"]
-    cols = {v: [c for c in SETS["c"] if c not in drop] for v, drop in VARIANTS.items()}
+    params = load_params()
     models = {}
-    for v, c in cols.items():
-        X = design(table, c, "hgb")
-        models[v] = [make_model("hgb", params, c).fit(X[tfold != k], y[tfold != k]) for k in range(5)]
-        print(f"fit {v} ({len(c)} features) x5 ({time.time() - t0:.0f}s)", flush=True)
+    for v in chosen:
+        cols, base = VARIANTS[v]
+        X = design(table, cols, "hgb")
+        models[v] = [make_model("hgb", params[base], cols).fit(X[tfold != k], y[tfold != k]) for k in range(5)]
+        print(f"fit {v} ({len(cols)} features, parameters of {base}) x5 ({time.time() - t0:.0f}s)", flush=True)
 
     train = block_mask("train")
     H, W = train.shape
     lut = np.full(14000, -1)
     lut[folds.group.to_numpy()] = folds.fold.to_numpy()
-    rasters = {v: np.lib.format.open_memmap(OUT / f"abl_{v}_r{seed}.npy", mode="w+", dtype="float32", shape=(H, W)) for v in VARIANTS}
+    rasters = {v: np.lib.format.open_memmap(OUT / f"abl_{v}_r{seed}.npy", mode="w+", dtype="float32", shape=(H, W)) for v in chosen}
     for r in rasters.values():
         r[:] = np.nan
     for r0 in range(0, H, TILE):
@@ -62,8 +73,8 @@ if __name__ == "__main__":
             ii, jj = np.nonzero(m)
             df = pd.DataFrame({n: feats[n][ii, jj] for n in NAMES})
             pf = lut[((ii + r0) // B) * 1000 + (jj + c0) // B]
-            for v, c in cols.items():
-                X = design(df, c, "hgb")
+            for v in chosen:
+                X = design(df, VARIANTS[v][0], "hgb")
                 p = np.empty(len(df), dtype="float32")
                 for k in range(5):
                     s = pf == k
