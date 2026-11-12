@@ -25,7 +25,7 @@ Maps: `reports/figures/candidates_map.png` (all candidates) and `reports/figures
 
 ## Data sources and credit
 - Labels and site factors (slope, elevation, rivers, roads, land use, lithology): Samodra et al. 2024, Mendeley Data, DOI 10.17632/vrtx3w6mjd.1, CC BY 4.0 (the article is CC BY-NC).
-- Imagery: Sentinel-2 L1C (contains modified Copernicus Sentinel data 2017 to 2018) with Cloud Score+ masks (Google; its licence is not checked here), via Google Earth Engine.
+- Imagery: Sentinel-2 L1C (contains modified Copernicus Sentinel data 2017 to 2018) with Cloud Score+ masks (CC BY 4.0; Pasquarella et al. 2023, CVPR Workshops, doi:10.1109/CVPRW59228.2023.00206), via Google Earth Engine.
 - "The AlphaEarth Foundations Satellite Embedding dataset is produced by Google and Google DeepMind." (Satellite Embedding V1 annual, 2018; CC BY 4.0.)
 - No data is committed (`data/` is gitignored).
 
