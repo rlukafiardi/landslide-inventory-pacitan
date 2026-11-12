@@ -1,0 +1,6 @@
+block_row_col,area_km2,candidates,large,large_per_km2,all_per_km2,pct_rank_vs_mapped_large_false,pct_rank_vs_mapped_large_all,non_landslide_points,inventory_polygons
+"(8, 10)",9.0,108,33,3.67,12.0,99.0,94.0,2,0
+"(9, 15)",9.0,29,5,0.56,3.22,48.0,41.0,3,0
+"(9, 16)",9.0,19,3,0.33,2.11,31.0,24.0,5,0
+"(9, 18)",7.17,60,7,0.98,8.37,62.0,56.0,4,0
+"(10, 14)",9.0,24,4,0.44,2.67,38.0,33.0,6,0
