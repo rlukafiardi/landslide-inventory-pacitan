@@ -119,6 +119,21 @@ f.update_yaxes(range=[0, 115], ticksuffix="%", title="share of polygons detected
 f.update_xaxes(title="inventory polygon area (95% interval)")
 figs["misses"] = styled(f, "Large scars are found almost always; the misses are small polygons", 400)
 
+# land use of the test-block objects, with class names inferred from the BIG RBI25K layers (src/analysis/landuse_legend.py)
+leg = pd.read_csv(f"{T}/landuse_legend.csv").set_index("code").proposed_name.str.replace(r" \(.*", "", regex=True)
+lu = pd.read_csv(f"{T}/test_error_analysis_landuse.csv").set_index("landuse")
+lm = pd.read_csv(f"{T}/test_error_analysis_miss_by_landuse.csv").set_index("landuse")
+lu_tab = pd.DataFrame({"land-use class (inferred name)": [f"{k}: {leg[k]}" for k in lu.index], "objects": lu.objects.astype(int).to_numpy(),
+                       "true": lu.true_objects.astype(int).to_numpy(), "object precision": [pct(v) for v in lu.precision],
+                       "share of false alarms": [pct(v) for v in lu.share_of_false_alarms], "share of test area": [pct(v) for v in lu.share_of_domain_area],
+                       "polygons >= 5 px detected": [f"{int(lm.detected.get(k, 0))} of {int(lm.polygons.get(k, 0))}" for k in lu.index]})
+paddy = lu.loc[[k for k in (10, 11) if k in lu.index]]
+lu_text = (f"<h3>By land-use class (test blocks)</h3>{table_html(lu_tab)}"
+           f"<p>The false alarms follow the share of the area rather than a class: paddy (codes 10 and 11) holds {pct(paddy.share_of_false_alarms.sum())} of the false alarms and "
+           f"{pct(paddy.share_of_domain_area.sum())} of the area; dry field (13) {pct(lu.loc[13].share_of_false_alarms)} against {pct(lu.loc[13].share_of_domain_area)}. "
+           f"Precision is lowest in class 10 ({int(lu.loc[10].true_objects)} true of {int(lu.loc[10].objects)}) and highest in plantation (6, {pct(lu.loc[6].precision)}). "
+           "The class names are inferred from the BIG RBI 1:25,000 layers (2022 edition) by overlay and are not confirmed by the inventory authors (reports/tables/landuse_legend.csv); the classes have 7 to 318 objects, so read the shares, not single precision values.</p>")
+
 # tables
 res = pd.DataFrame({"model": [LABEL[m] for m in test.index], "object recall >= 5 px": [f"{pct(test.loc[m, 'object_recall_ge5'])} ({ci(test.loc[m], 'object_recall_ge5')})" for m in test.index],
                     "strict recall (IoU >= 0.3)": [pct(test.loc[m, "strict_recall_ge5"]) for m in test.index],
@@ -173,7 +188,7 @@ sections = [
     section("What the false alarms are", "A blinded visual review of 40 objects (30 large false alarms, 10 known scars as controls, shuffled, judged on Sentinel-2 true colour) shows that most large false alarms are bare ground that is not a landslide.",
             "<div>@@review@@</div><p>Reviewer notes on the false alarms: terrace farming (7), river bank (2), coastal wave erosion (1), road (1). Two known scars were also called unsure (terrace farming, mining area), "
             "so a few inventory polygons are hard to tell from look-alikes at 10 m. The review covers only objects of 20 pixels or more (24% of the false alarms); n = 30.</p>"
-            "<div>@@size@@</div>"),
+            "<div>@@size@@</div>" + lu_text),
     section("What it misses", "Misses are the small polygons: nearly every polygon over 2,000 m2 is found; polygons under 500 m2 are mostly not found and are outside the target.", "<div>@@misses@@</div>"),
     section("How the model was chosen", f"Five repeats of block cross-validation on the training blocks, compared at 80% object recall. The chosen model beat the best simple baseline by "
             f"{100 * gate.mean_diff_precision:.1f} points (interval {100 * gate.ci_low:+.1f} to {100 * gate.ci_high:+.1f}, {gate.repeats_won} repeats won).",
