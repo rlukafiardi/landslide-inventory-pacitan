@@ -2,6 +2,7 @@
 
 A screening aid that flags candidate landslide scars from Sentinel-2 and Google Satellite Embedding, so an expert reviews flagged objects instead of
 digitizing the whole area by hand. Reference labels: the Samodra et al. 2024 inventory (743 polygons).
+An independent analysis of public data: not an official product, and not affiliated with the inventory's authors, BIG or Badan Geologi.
 
 ## Result (held-out test blocks, scored once)
 | | target | test result (95% interval) |
@@ -27,7 +28,11 @@ Maps: `reports/figures/candidates_map.png` (all candidates) and `reports/figures
 - Labels and site factors (slope, elevation, rivers, roads, land use, lithology): Samodra et al. 2024, Mendeley Data, DOI 10.17632/vrtx3w6mjd.1, CC BY 4.0 (the article is CC BY-NC).
 - Imagery: Sentinel-2 L1C (contains modified Copernicus Sentinel data 2017 to 2018) with Cloud Score+ masks (CC BY 4.0; Pasquarella et al. 2023, CVPR Workshops, doi:10.1109/CVPRW59228.2023.00206), via Google Earth Engine.
 - "The AlphaEarth Foundations Satellite Embedding dataset is produced by Google and Google DeepMind." (Satellite Embedding V1 annual, 2018; CC BY 4.0.)
-- No data is committed (`data/` is gitignored).
+- Legends used only to describe the results, not committed: land-use class names inferred by overlay from the BIG (Badan Informasi Geospasial) RBI 1:25,000 land-cover layers of Kab. Pacitan (2022 edition), and lithology groups inferred from the 1992 Geological Map of the Pacitan Quadrangle, 1:100,000 (Samodra, Gafoer and Tjokrosapoetro; Badan Geologi, GeoMap). Both are inferences, not confirmed by the inventory authors (`reports/tables/landuse_legend.csv`, `lithology_legend.csv`).
+- No data is committed (`data/` is gitignored). The reports contain figures and chips derived from the sources above; credits apply to them.
+
+## Limits
+Precision is a floor, not a measure: the inventory started from citizen reports and is not wall-to-wall, so some false alarms may be unmapped scars (a blinded check of one suspect block found few). The test set is 34 blocks and 106 polygons of 500 m2 or more, so the intervals are wide. One event in one regency: nothing here shows how the model transfers to another storm or region.
 
 ## How to run
 ```
@@ -41,6 +46,9 @@ LANDSLIDE_FINAL_EVAL=1 uv run python -W ignore -m src.modeling.evaluate_test   #
 make deliver                       # candidates GeoPackage, map, report
 ```
 The project notes for a new session are in `CLAUDE.md`.
+
+## Licence
+Code: MIT (`LICENSE`). Data, imagery and reports keep the terms of their sources, listed above.
 
 ## Layout
 `src/data` labels, split, loaders and checks · `src/ingestion` Earth Engine download · `src/features` the 97 features and their checks · `src/modeling` tuning, out-of-fold,
