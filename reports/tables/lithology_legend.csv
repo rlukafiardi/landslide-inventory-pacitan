@@ -1,0 +1,16 @@
+code,proposed_name,candidate_units_on_sheet,evidence,confidence,status
+2,Alluvium (Qa),Qa,"Median elevation 15 m, slope 5.5 deg (the plain); fill pale, colour alone cannot separate it from the cream units",medium,inferred from the 1992 sheet by overlay; unverified by the authors
+8,Limestone group,"Tmwl Wonosari (reef, bedded limestone) or Tmcl Campurdarat (crystalline limestone)",Blue fill (the only blue units); the two limestones have almost the same blue,medium,inferred from the 1992 sheet by overlay; unverified by the authors
+30,Intrusive rocks,"Tomi (andesite, dacite, basalt, diorite)",68% of its pixels sit on the pink fill,high,inferred from the 1992 sheet by overlay; unverified by the authors
+26,High-ground volcanic group (old volcanics),"Tomm Mandalika or Tomw Watupatok (volcanic breccia, lava, tuff)","Orange-brown fill, median elevation 677 m, steep",low,inferred from the 1992 sheet by overlay; unverified by the authors
+7,Brown volcaniclastic group,"Tomm, Tmn Nampol or Toma Arjosari","Brown fill, median elevation 496 m, steep; swatch colours too close",low,inferred from the 1992 sheet by overlay; unverified by the authors
+32,Yellow tuffaceous sediment group,"Tmj Jaten, Tmw Wuni, Toma Arjosari or Tmn Nampol","Yellow fill, 23% of the raster, median elevation 320 m",low,inferred from the 1992 sheet by overlay; unverified by the authors
+20,Pale sediment group,Tmo Oyo or Tms Semilir,Cream fill; colours too close to separate,low,inferred from the 1992 sheet by overlay; unverified by the authors
+27,Yellow-cream sediment group,"Tmo Oyo, Tmj Jaten or Tms Semilir",Cream-yellow fill,low,inferred from the 1992 sheet by overlay; unverified by the authors
+29,Pale sediment group,Tmo Oyo or Tms Semilir,Cream fill,low,inferred from the 1992 sheet by overlay; unverified by the authors
+31,Pale sediment group,"Tmo Oyo, Qa or Tms Semilir","Cream fill, median elevation 320 m, slope 8.8 deg",low,inferred from the 1992 sheet by overlay; unverified by the authors
+12,unknown (west of the sheet),not on the 1507-4 sheet,No pixel inside the scan; median elevation 941 m,none,inferred from the 1992 sheet by overlay; unverified by the authors
+13,unknown (west of the sheet),not on the 1507-4 sheet,4 pixels inside the scan; median elevation 938 m,none,inferred from the 1992 sheet by overlay; unverified by the authors
+16,unknown (west of the sheet),not on the 1507-4 sheet,No pixel inside the scan; median elevation 880 m,none,inferred from the 1992 sheet by overlay; unverified by the authors
+24,unknown (17 pixels),-,Too small,none,inferred from the 1992 sheet by overlay; unverified by the authors
+33,"unknown (1,752 pixels)",-,"Too small, edge of the sheet",none,inferred from the 1992 sheet by overlay; unverified by the authors
