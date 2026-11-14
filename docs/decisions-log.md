@@ -100,3 +100,8 @@ Removed src/ee_check.py, src/s2_availability_check.py and src/config.py (POC-era
 - After the owner's review of the deck: added a recall/precision explainer (page 4, 100-square icon arrays from the test numbers), a page listing the 97 features by group with examples (6; counts read from `feature_catalogue.csv`, the embedding row counts as its 64 bands), two glossary appendix pages, plain model names in tables and charts (no `dNDVI` or `-dB min5`; "site maps" = terrain, land use, lithology), and the closing page shows the name only. Deck is now 26 pages; the page numbers cited in the text are constants asserted by the build.
 - New `src/analysis/glossary.py` (no numbers from results): `modeling.html` has "How to read the numbers" first and "Terms used in this report" before Reproduce; `eda.html` has "Terms used in this report" first. Both regenerated; text diff against the committed versions shows additions only (42 and 20 lines), figures and tables byte-identical.
 - Not committed or pushed yet.
+
+## 2026-11-14: one chart blue for deck and reports
+- The deck used ColorBrewer blue `#2171B5` for the "touches a scar" category and the reports use `#2a78d6`; the zoom-map legend swatch also used the brand blue while the map drew another. New `src/analysis/palette.py` (`CHART_BLUE = "#2a78d6"`) is the one home: `html_report.py`, `maps.py` and `build_deck.py` import it. Deck rebuilt; palette check on red, blue and grey against the paper colour passes (greys are direct-labelled). Brand red stays the highlight in the deck. Rule written in `chart-design/references/color.md` ("Brand-carrying outputs").
+- `modeling.html` regenerated to confirm the import works and then restored: only plotly element ids differ.
+- Not committed.

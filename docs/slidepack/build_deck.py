@@ -24,6 +24,7 @@ from slidepack import BLUE, CHART_H_PT, CHART_W_PT, Deck, M, W  # noqa: E402
 
 sys.path.insert(0, str(ROOT))
 from src.analysis.glossary import DATA, DECK, METHOD, METRICS  # noqa: E402
+from src.analysis.palette import CHART_BLUE  # noqa: E402
 
 VERDICT_PAGE, MODELS_PAGE = 11, 10  # pages cited in the text; checked after the build
 PAGES = {}
@@ -40,7 +41,7 @@ plt.rcParams.update(
 )
 
 NAVY, INK2, SUN, GREY = "#1D3557", "#3D5470", "#E63946", "#B8B8B2"
-SCAR, NOTSCAR, UNSURE = "#2171B5", "#D5D5D0", "#8A8A84"  # review chart: same mapping on every page that uses it
+SCAR, NOTSCAR, UNSURE = CHART_BLUE, "#D5D5D0", "#8A8A84"  # review chart: same mapping on every page that uses it
 
 pct = lambda v, d=1: f"{v * 100:.{d}f}%"  # noqa: E731
 ci = lambda v, lo, hi: f"{pct(v)} ({lo * 100:.1f}-{hi * 100:.1f})"  # noqa: E731
@@ -304,7 +305,7 @@ d.compare(
 )
 for x0, share, color, caption in (
     (M, c.object_recall_ge5, SUN, "scars found, out of every 100 real scars"),
-    (W / 2 + 30, c.object_precision, BLUE, "flags that are real, out of every 100 flagged objects"),
+    (W / 2 + 30, c.object_precision, CHART_BLUE, "flags that are real, out of every 100 flagged objects"),
 ):
     k = round(share * 100)
     for i in range(100):
@@ -556,7 +557,7 @@ d.map_page(
     legend=[
         ("outline", NAVY, "inventory polygon"),
         ("solid", NAVY, "inventory polygon, not touched"),
-        ("fill", BLUE, "flagged object touching a polygon"),
+        ("fill", CHART_BLUE, "flagged object touching a polygon"),
         ("fill", SUN, "flagged object touching none"),
     ],
     sources="Candidate file, held-out test blocks; elevation: Samodra et al. 2024 (CC BY 4.0)",

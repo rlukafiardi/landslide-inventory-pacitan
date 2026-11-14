@@ -21,7 +21,9 @@ warnings.filterwarnings("ignore")
 
 B, RES = 300, 10  # block size in pixels (src/data/constants.py), pixel size in metres
 UNMAPPED_BLOCKS = [(8, 10), (9, 15), (9, 16), (9, 18), (10, 14)]
-NAVY, SUN, BLUE, GREY = "#1D3557", "#E63946", "#2171B5", "#8A8A84"
+from src.analysis.palette import CHART_BLUE as BLUE  # noqa: E402
+
+NAVY, SUN, GREY = "#1D3557", "#E63946", "#8A8A84"
 CRS = "EPSG:32749"
 
 
