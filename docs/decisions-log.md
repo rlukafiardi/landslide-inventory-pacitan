@@ -105,3 +105,9 @@ Removed src/ee_check.py, src/s2_availability_check.py and src/config.py (POC-era
 - The deck used ColorBrewer blue `#2171B5` for the "touches a scar" category and the reports use `#2a78d6`; the zoom-map legend swatch also used the brand blue while the map drew another. New `src/analysis/palette.py` (`CHART_BLUE = "#2a78d6"`) is the one home: `html_report.py`, `maps.py` and `build_deck.py` import it. Deck rebuilt; palette check on red, blue and grey against the paper colour passes (greys are direct-labelled). Brand red stays the highlight in the deck. Rule written in `chart-design/references/color.md` ("Brand-carrying outputs").
 - `modeling.html` regenerated to confirm the import works and then restored: only plotly element ids differ.
 - Not committed.
+
+## 2026-11-14: LinkedIn deck language
+- Owner chose English for the deck shared on LinkedIn (the post itself stays in their casual Bahasa). No translation work. Open: whether page 1 states the result for the LinkedIn preview, and whether to share the full 26 pages or a cut of about 10 to 14 pages without the appendix.
+
+## 2026-11-14: checkpoint
+- The headline-numbers page (page 11) now has a source line (builder gained `sources` on `numbers()`); deck rebuilt. LinkedIn items parked as ideas in `CLAUDE.md` (Status).

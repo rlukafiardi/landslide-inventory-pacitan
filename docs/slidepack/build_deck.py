@@ -478,6 +478,7 @@ d.numbers(
         (pct(c.flagged_share), "of the test area flagged for review"),
     ],
     sub=f"Frozen model scored once on 34 held-out blocks: {int(c.objects):,} objects flagged, {int(c.true_objects)} touching a scar.",
+    sources="Source: reports/tables/test_results.csv",
 )
 
 d.table(
