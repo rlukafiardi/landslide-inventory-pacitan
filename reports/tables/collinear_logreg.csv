@@ -1,0 +1,11 @@
+base,repeat,precision_with_dAdB,precision_without,diff,ci_low,ci_high,interval_excludes_zero,recall_with,recall_without
+simple_logreg,0,0.0284,0.0285,0.0001,-0.0044,0.0043,False,0.806,0.8083
+simple_logreg,1,0.0284,0.0283,-0.0001,-0.0048,0.0052,False,0.8083,0.8083
+simple_logreg,2,0.0287,0.0288,0.0001,-0.0006,0.0056,False,0.806,0.8106
+simple_logreg,3,0.0286,0.0284,-0.0002,-0.0029,0.0045,False,0.8037,0.806
+simple_logreg,4,0.0284,0.0283,-0.0,-0.0028,0.0051,False,0.8014,0.806
+all_logreg,0,0.0408,0.0501,0.0093,-0.0042,0.0093,False,0.8152,0.8014
+all_logreg,1,0.0407,0.041,0.0003,-0.0059,0.0063,False,0.8152,0.8152
+all_logreg,2,0.0407,0.041,0.0004,-0.0035,0.0071,False,0.8129,0.8129
+all_logreg,3,0.0407,0.0412,0.0005,-0.0067,0.0055,False,0.8152,0.8176
+all_logreg,4,0.0408,0.0408,0.0,-0.0038,0.0059,False,0.8152,0.8129

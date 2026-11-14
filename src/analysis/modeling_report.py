@@ -140,6 +140,15 @@ res = pd.DataFrame({"model": [LABEL[m] for m in test.index], "object recall >= 5
                     "object precision": [f"{pct(test.loc[m, 'object_precision'])} ({ci(test.loc[m], 'object_precision')})" for m in test.index],
                     "flagged share of area": [pct(test.loc[m, "flagged_share"]) for m in test.index],
                     "objects to review": [f"{int(test.loc[m, 'objects']):,}" for m in test.index]})
+# Counts behind the two rates. Recall counts polygons, precision counts predicted objects: two units (one polygon can be touched by several
+# objects), and background has no objects to count, so a confusion matrix does not apply; this table gives each unit its own counts.
+detected = (test.object_recall_ge5 * test.polygons_ge5).round().astype(int)
+counts = pd.DataFrame({"model": [LABEL[m] for m in test.index],
+                       "polygons >= 500 m2 detected": [f"{detected[m]} of {int(test.loc[m, 'polygons_ge5'])}" for m in test.index],
+                       "polygons missed": [int(test.loc[m, "polygons_ge5"]) - detected[m] for m in test.index],
+                       "objects flagged": [f"{int(test.loc[m, 'objects']):,}" for m in test.index],
+                       "objects touching a polygon": [int(test.loc[m, "true_objects"]) for m in test.index],
+                       "objects touching none (false alarms)": [f"{int(test.loc[m, 'objects'] - test.loc[m, 'true_objects']):,}" for m in test.index]})
 mr = pd.read_csv(f"{T}/modeling_results.csv")
 mr = mr[mr.recall_target == 0.8].copy()
 names_map = {"naive_dB": "Naive threshold on -dB", "naive_dBmin5": "Naive threshold on -dB min5", "floor_logreg": "Site factors only (logistic)", "simple_logreg": "Simple logistic (dNDVI + factors)",
@@ -172,7 +181,11 @@ sections = [
             "The criterion was fixed before any model and is unchanged.",
             "<div>@@criterion@@</div>" + table_html(res) +
             f"<p>Test blocks: {int(c.polygons_all)} inventory polygons, {n_test_poly} of 500 m2 or more. The model flagged {int(c.objects):,} objects, {int(c.true_objects)} of them true. "
-            "One score on the frozen model and the operating point chosen from the out-of-fold repeats; nothing was tuned on these blocks.</p>"),
+            "One score on the frozen model and the operating point chosen from the out-of-fold repeats; nothing was tuned on these blocks.</p>"
+            "<h3>The counts behind the two rates</h3>" + table_html(counts) +
+            "<p>There is no confusion matrix because the two rates count different things: recall counts polygons, precision counts predicted objects, and one polygon "
+            "can be touched by several objects (the chosen model has more true objects than detected polygons). Background has no objects to count as true negatives. "
+            "The polygons detected are recall times the polygons of 500 m2 or more (rounded to a whole polygon).</p>"),
     section("Where the model flags", "The candidates are spread over the steep interior; on the test blocks the reference polygons are mostly covered by true objects, with scattered small false alarms around them.",
             image("reports/figures/candidates_map.png", "Overview map of the candidates") +
             "<p>Overview of all candidates (the GeoPackage deliverable). Test blocks are outlined.</p>" +

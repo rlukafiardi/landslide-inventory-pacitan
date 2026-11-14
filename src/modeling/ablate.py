@@ -1,4 +1,5 @@
 """Phase 5: variants of the chosen model (c_hgb: all features, boosting): one group or feature removed, or a new group added.
+The `*_logreg_no_diff` variants drop dA and dB (exact differences postA - pre, postB - pre) from a logistic baseline; the model kind follows the base config.
 
 Each variant refits boosting with the tuned parameters of its base config (c_hgb, or a_hgb for the a-based variant) on the same block
 folds of one repeat, and writes data/interim/oof/abl_<variant>_r<seed>.npy (same format as oof.py; the `abl_` prefix keeps them out of
@@ -19,7 +20,7 @@ from src.data.load import block_mask
 from src.features.build import INTERIM, TILE, feature_window
 from src.features.registry import GROUPS, NAMES
 from src.modeling.folds import block_folds, fold_of
-from src.modeling.prep import SETS, design, load_params, make_model
+from src.modeling.prep import CONFIGS, SETS, design, load_params, make_model
 
 
 def minus(*drop):
@@ -34,6 +35,9 @@ VARIANTS = {
     "no_site_cat": (minus(*GROUPS["site_cat"]), "c_hgb"),
     "no_distroad": (minus("distroad"), "c_hgb"),
     "no_landuse": (minus("landuse"), "c_hgb"),
+    # dA = postA - pre and dB = postB - pre are exact, so pre/postA/postB/dA/dB are linearly dependent; same C as the base config
+    "simple_logreg_no_diff": ([c for c in SETS["a"] if c not in ("dA", "dB")], "simple_logreg"),
+    "all_logreg_no_diff": ([c for c in SETS["c"] if c not in ("dA", "dB")], "all_logreg"),
 }
 DEFAULT = [v for v in VARIANTS if v.startswith("no_")]
 
@@ -50,9 +54,10 @@ if __name__ == "__main__":
     models = {}
     for v in chosen:
         cols, base = VARIANTS[v]
-        X = design(table, cols, "hgb")
-        models[v] = [make_model("hgb", params[base], cols).fit(X[tfold != k], y[tfold != k]) for k in range(5)]
-        print(f"fit {v} ({len(cols)} features, parameters of {base}) x5 ({time.time() - t0:.0f}s)", flush=True)
+        kind = CONFIGS[base][0]
+        X = design(table, cols, kind)
+        models[v] = [make_model(kind, params[base], cols).fit(X[tfold != k], y[tfold != k]) for k in range(5)]
+        print(f"fit {v} ({kind}, {len(cols)} features, parameters of {base}) x5 ({time.time() - t0:.0f}s)", flush=True)
 
     train = block_mask("train")
     H, W = train.shape
@@ -72,7 +77,7 @@ if __name__ == "__main__":
             df = pd.DataFrame({n: feats[n][ii, jj] for n in NAMES})
             pf = lut[((ii + r0) // B) * 1000 + (jj + c0) // B]
             for v in chosen:
-                X = design(df, VARIANTS[v][0], "hgb")
+                X = design(df, VARIANTS[v][0], CONFIGS[VARIANTS[v][1]][0])
                 p = np.empty(len(df), dtype="float32")
                 for k in range(5):
                     s = pf == k

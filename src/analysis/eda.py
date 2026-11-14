@@ -344,19 +344,31 @@ sections.append(section("Categorical features vs target", cat_take, "<div>@@cate
 
 # ------------------------------------------------------------------ 6. correlations, VIF, outliers
 ref_cols = [c for c in NUM]
-rho = neg[ref_cols].rank().corr()
-pairs = [(a, b, rho.loc[a, b]) for i, a in enumerate(ref_cols) for b in ref_cols[i + 1:] if abs(rho.loc[a, b]) >= 0.7]
-rc = rho.dropna(how="all").dropna(axis=1, how="all")
-vif = pd.Series(np.diag(np.linalg.pinv(rc.to_numpy())), index=rc.index, name="vif").reset_index().rename(columns={"index": "feature"})
+# Both coefficients on the non-landslide sample pixels (99.85% of the domain): Spearman is robust to the heavy tails (planc, distriv, twi),
+# Pearson is what a linear model's collinearity depends on, so VIF is computed from the Pearson matrix (diag of its inverse).
+# dA and dB are exact differences (postA - pre, postB - pre; registry: "derived"), so their VIF is infinite by construction: VIF is computed on
+# the other features, complete cases only (pairwise-complete correlations need not be a valid matrix), and the derived two are listed as exact.
+DERIVED = {"dA": "postA - pre", "dB": "postB - pre"}
+rho_s, rho_p = neg[ref_cols].rank().corr(), neg[ref_cols].corr()
+pairs = [(a, b, rho_s.loc[a, b], rho_p.loc[a, b]) for i, a in enumerate(ref_cols) for b in ref_cols[i + 1:]
+         if max(abs(rho_s.loc[a, b]), abs(rho_p.loc[a, b])) >= 0.7]
+vif_cols = [c for c in ref_cols if c not in DERIVED]
+rc = neg[vif_cols].dropna().corr()
+vif = pd.Series(np.diag(np.linalg.inv(rc.to_numpy())), index=vif_cols, name="vif").reset_index().rename(columns={"index": "feature"})
+vif["note"] = ""
+vif = pd.concat([vif, pd.DataFrame({"feature": list(DERIVED), "vif": np.nan, "note": [f"exact: {v}" for v in DERIVED.values()]})], ignore_index=True)
 tables["vif"] = vif
-tables["high_corr_pairs"] = pd.DataFrame(pairs, columns=["a", "b", "spearman"])
-fig = go.Figure(go.Heatmap(z=rho.to_numpy(), x=ref_cols, y=ref_cols, zmin=-1, zmax=1, colorscale=[[0, RED], [0.5, "#f0efec"], [1, BLUE]],
-                           text=np.round(rho.to_numpy(), 2), texttemplate="%{text}", textfont_size=9))
+tables["high_corr_pairs"] = pd.DataFrame(pairs, columns=["a", "b", "spearman", "pearson"])
+fig = make_subplots(rows=1, cols=2, subplot_titles=("Spearman (rank)", "Pearson"), horizontal_spacing=0.08)
+for k, m in enumerate((rho_s, rho_p), start=1):
+    fig.add_trace(go.Heatmap(z=m.to_numpy(), x=ref_cols, y=ref_cols, zmin=-1, zmax=1, colorscale=[[0, RED], [0.5, "#f0efec"], [1, BLUE]],
+                             text=np.round(m.to_numpy(), 2), texttemplate="%{text}", textfont_size=8, showscale=False), 1, k)
 fig.update_yaxes(autorange="reversed")
-figs["corr"] = styled(fig, "Spearman correlation between features (all pixels): the NDVI features move together", height=560)
+figs["corr"] = styled(fig, "Correlation between features on non-landslide pixels: the NDVI features move together under both coefficients", height=560)
 hi_vif = ", ".join(f"{r.feature} ({r.vif:.1f})" for r in vif[vif.vif >= 10].itertuples()) or "none"
-pair_txt = ", ".join(f"{a}-{b} ({v:.2f})" for a, b, v in pairs) or "none"
-sections.append(section("Feature-feature correlations", f"Pairs with |rho| >= 0.7: {pair_txt}. VIF of 10 or more means a feature is redundant for a linear model: {hi_vif}.",
+n_vif = len(neg[vif_cols].dropna())
+pair_txt = ", ".join(f"{a}-{b} (Spearman {sp:.2f}, Pearson {pe:.2f})" for a, b, sp, pe in pairs) or "none"
+sections.append(section("Feature-feature correlations", f"Pairs with |r| >= 0.7 under either coefficient: {pair_txt}. dA and dB are exact differences (postA - pre, postB - pre), so a linear model cannot take them together with pre, postA and postB. VIF (Pearson matrix, {n_vif:,} complete rows, derived features left out) of 10 or more means a feature is redundant for a linear model: {hi_vif}.",
                         "<div>@@corr@@</div>" + table_html(tables["high_corr_pairs"].round(2)) + table_html(vif.round(1))))
 
 out_rows = []
