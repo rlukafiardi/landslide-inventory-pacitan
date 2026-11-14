@@ -13,7 +13,5 @@ repos:
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.17.4
     hooks:
-      # Manual until the existing findings are fixed (uvx pre-commit@4.7.0 run --hook-stage manual ruff-check --all-files);
-      # then remove the stages line and add the ruff-format hook.
       - id: ruff-check
-        stages: [manual]
+      - id: ruff-format
