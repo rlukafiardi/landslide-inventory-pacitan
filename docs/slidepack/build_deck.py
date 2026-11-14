@@ -20,7 +20,7 @@ from PIL import Image
 ROOT = Path.cwd()
 WORKSPACE = ROOT.parents[1]
 sys.path.insert(0, str(WORKSPACE / ".claude/skills/slidepack/scripts"))
-from slidepack import BLUE, CHART_H_PT, CHART_W_PT, Deck, M, W  # noqa: E402
+from slidepack import CHART_H_PT, CHART_W_PT, Deck, M, W  # noqa: E402
 
 sys.path.insert(0, str(ROOT))
 from src.analysis.glossary import DATA, DECK, METHOD, METRICS  # noqa: E402
@@ -212,18 +212,6 @@ ar.crop((0, 165, ar.width, ar.height)).save(IMG / "architecture_crop.png")
 # ---- deck -----------------------------------------------------------------------------------------------------------
 d = Deck(OUT, title="Landslide screening in Pacitan: results and limits")
 SRC_REPO = "github.com/rlukafiardi/landslide-inventory-pacitan"
-
-
-def glossary_page(title, items, sub=None):
-    """Two-column plain-language definitions (from src/analysis/glossary.py, shared with the reports)."""
-    d._page(sources="Definitions: src/analysis/glossary.py, also in the modeling and EDA reports")
-    top = d._head(title, sub) - 22
-    half = (len(items) + 1) // 2
-    colw = (W - 2 * M - 30) / 2
-    for k, col in enumerate((items[:half], items[half:])):
-        y = top
-        for term, body in col:
-            y = d._para(M + k * (colw + 30), y, term + ".", body, 13, BLUE, NAVY, colw) - 10
 
 
 d.cover(
@@ -712,12 +700,17 @@ d.table(
     note=f"first cross-validation repeat; the 7.6% on page {MODELS_PAGE} is the mean of 5 repeats",
 )
 
-glossary_page(
+d.glossary(
     "Appendix: the metrics in plain words",
     METRICS,
     sub="Recall and precision are explained on page 4; these are the other terms the results use.",
+    sources="Definitions: src/analysis/glossary.py, also in the modeling and EDA reports",
 )
-glossary_page("Appendix: method and data terms in plain words", METHOD + DATA + DECK)
+d.glossary(
+    "Appendix: method and data terms in plain words",
+    METHOD + DATA + DECK,
+    sources="Definitions: src/analysis/glossary.py, also in the modeling and EDA reports",
+)
 
 d.closing(
     "An independent analysis of public data, not an official product and not affiliated with the inventory's authors, BIG or Badan Geologi. "
