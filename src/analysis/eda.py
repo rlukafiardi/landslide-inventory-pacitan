@@ -369,7 +369,7 @@ hi_vif = ", ".join(f"{r.feature} ({r.vif:.1f})" for r in vif[vif.vif >= 10].iter
 n_vif = len(neg[vif_cols].dropna())
 pair_txt = ", ".join(f"{a}-{b} (Spearman {sp:.2f}, Pearson {pe:.2f})" for a, b, sp, pe in pairs) or "none"
 sections.append(section("Feature-feature correlations", f"Pairs with |r| >= 0.7 under either coefficient: {pair_txt}. dA and dB are exact differences (postA - pre, postB - pre), so a linear model cannot take them together with pre, postA and postB. VIF (Pearson matrix, {n_vif:,} complete rows, derived features left out) of 10 or more means a feature is redundant for a linear model: {hi_vif}.",
-                        "<div>@@corr@@</div>" + table_html(tables["high_corr_pairs"].round(2)) + table_html(vif.round(1))))
+                        "<div>@@corr@@</div>" + table_html(tables["high_corr_pairs"].round(2)) + table_html(vif.round(1).astype({"vif": object}).fillna({"vif": "infinite"}))))
 
 out_rows = []
 for c in NUM:
