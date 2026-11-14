@@ -14,6 +14,7 @@ import plotly.graph_objects as go
 import rasterio
 from plotly.subplots import make_subplots
 
+from src.analysis.glossary import DATA, EDA, METHOD
 from src.analysis.html_report import (
     BLUE,
     BLUES,
@@ -197,6 +198,13 @@ dictionary = pd.DataFrame(
     columns=["column", "meaning", "unit", "source"],
 )
 tables["dictionary"] = dictionary
+sections.append(
+    section(
+        "Terms used in this report",
+        "Plain-language definitions; the recall and precision used for the model are defined in the modeling report.",
+        table_html(pd.DataFrame([t for t in METHOD if t[0] == "AUC"] + DATA + EDA, columns=["term", "what it means"])),
+    )
+)
 sections.append(
     section(
         "Data dictionary",

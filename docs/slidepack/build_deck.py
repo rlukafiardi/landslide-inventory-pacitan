@@ -20,7 +20,13 @@ from PIL import Image
 ROOT = Path.cwd()
 WORKSPACE = ROOT.parents[1]
 sys.path.insert(0, str(WORKSPACE / ".claude/skills/slidepack/scripts"))
-from slidepack import BLUE, CHART_H_PT, CHART_W_PT, Deck  # noqa: E402
+from slidepack import BLUE, CHART_H_PT, CHART_W_PT, Deck, M, W  # noqa: E402
+
+sys.path.insert(0, str(ROOT))
+from src.analysis.glossary import DATA, DECK, METHOD, METRICS  # noqa: E402
+
+VERDICT_PAGE, MODELS_PAGE = 11, 10  # pages cited in the text; checked after the build
+PAGES = {}
 
 T = ROOT / "reports/tables"
 IMG = ROOT / "docs/slidepack/img"
@@ -93,8 +99,8 @@ def rep0(df, name, recall=0.8):
 fig, ax = new_fig()
 rows = [
     ("Chosen model (boosting, 97 features)", c, SUN),
-    ("Simple logistic (dNDVI + factors)", lg, GREY),
-    ("Naive threshold on -dB min5", nv, GREY),
+    ("Simple logistic\n(vegetation change + site maps)", lg, GREY),
+    ("Naive threshold on\nvegetation loss", nv, GREY),
 ]
 for i, (_, r, col) in enumerate(rows):
     ax.barh(i, r.false_per_true, color=col, height=0.62)
@@ -207,6 +213,18 @@ d = Deck(OUT, title="Landslide screening in Pacitan: results and limits")
 SRC_REPO = "github.com/rlukafiardi/landslide-inventory-pacitan"
 
 
+def glossary_page(title, items, sub=None):
+    """Two-column plain-language definitions (from src/analysis/glossary.py, shared with the reports)."""
+    d._page(sources="Definitions: src/analysis/glossary.py, also in the modeling and EDA reports")
+    top = d._head(title, sub) - 22
+    half = (len(items) + 1) // 2
+    colw = (W - 2 * M - 30) / 2
+    for k, col in enumerate((items[:half], items[half:])):
+        y = top
+        for term, body in col:
+            y = d._para(M + k * (colw + 30), y, term + ".", body, 13, BLUE, NAVY, colw) - 10
+
+
 d.cover(
     "Finding landslide scars from satellite data in Pacitan",
     "A screening model for Cyclone Cempaka (Nov 2017): what it finds, what it misses, and what it hands to an expert",
@@ -259,6 +277,43 @@ d.bullets(
     sources=f"{SRC_REPO} docs/plan.md, docs/validation-design.md",
 )
 
+n_found = round(c.object_recall_ge5 * c.polygons_ge5)
+d.compare(
+    "Recall: how many real scars did it find?",
+    [
+        ("Question", "Out of every 100 real scars of 500 m2 or more, how many did the model find?"),
+        ("Counted as found", "At least one flagged object touches the scar."),
+        (
+            "On the test blocks",
+            f"{n_found} of {int(c.polygons_ge5)} scars found: {pct(c.object_recall_ge5)}. Target 80% or more: met.",
+        ),
+        ("Read it with care", "Flagging more of the map raises recall, so it is never read alone."),
+    ],
+    "Precision: how many flags are real?",
+    [
+        ("Question", "Out of every 100 flagged objects, how many touch a real scar?"),
+        ("Counted as real", "The object touches a scar mapped in the inventory."),
+        (
+            "On the test blocks",
+            f"{int(c.true_objects)} of {int(c.objects):,} objects touch a scar: {pct(c.object_precision)}. Target 30% or more: not met.",
+        ),
+        ("A floor", "A flag on a real scar that nobody mapped counts as wrong, so true precision is higher."),
+    ],
+    left_tag="RECALL",
+    right_tag="PRECISION",
+)
+for x0, share, color, caption in (
+    (M, c.object_recall_ge5, SUN, "scars found, out of every 100 real scars"),
+    (W / 2 + 30, c.object_precision, BLUE, "flags that are real, out of every 100 flagged objects"),
+):
+    k = round(share * 100)
+    for i in range(100):
+        row, col = divmod(i, 10)
+        d.c.setFillColor(color if i < k else "#D5D5D0")
+        d.c.rect(x0 + col * 14, 222 - (row + 1) * 14, 12, 12, stroke=0, fill=1)
+    d._text(x0 + 156, 150, f"{k}", "PJS-XBold", 40, color, 120)
+    d._text(x0 + 156, 128, caption, "PJS-Regular", 12, NAVY, 230, 1.25)
+
 d.bullets(
     "Labels are 743 polygons from a citizen-report inventory, so a missing polygon is not proof of no landslide",
     [
@@ -268,7 +323,7 @@ d.bullets(
         ),
         (
             "Inputs",
-            "Sentinel-2 vegetation index (NDVI) before and after the storm, the 2018 Satellite Embedding, terrain and site factors on one 10 m grid: 97 features.",
+            "Sentinel-2 satellite images before and after the storm, a 2018 satellite embedding, and the release's terrain, land-use and geology maps, all on one 10 m grid. The next page lists the 97 features.",
         ),
         (
             "Rare and small",
@@ -281,6 +336,39 @@ d.bullets(
     ],
     sub="Observed: labels and imagery. Assumed: the shift, and that unmapped ground is mostly no landslide.",
     sources="Samodra et al. 2024, Mendeley Data 10.17632/vrtx3w6mjd.1; Sentinel-2: Copernicus; embedding: Google DeepMind (CC BY 4.0)",
+)
+
+cat = pd.read_csv(T / "feature_catalogue.csv")
+cat["n"] = cat.feature.str.extract(r"\((\d+) bands\)")[0].fillna(1).astype(int)
+nf = cat.groupby("group").n.sum()
+assert int(nf.sum()) == 97, nf
+d.bullets(
+    f"Each 10 m pixel is described by {int(nf.sum())} numbers in six groups, from vegetation change to terrain and a satellite embedding",
+    [
+        (
+            f"Vegetation at the pixel ({nf['ndvi_pixel']})",
+            "Greenness before the storm (pre), after it (postA, postB) and the change between them (dA, dB).",
+        ),
+        (
+            f"Vegetation around the pixel ({nf['ndvi_nbr']})",
+            "Mean, lowest value and spread of the change within 30 m and 50 m (dB_min5 is the lowest within 50 m), and how the pixel differs from its 110 m surroundings.",
+        ),
+        (
+            f"Terrain ({nf['terrain']})",
+            "Slope, elevation, distance to river and road, wetness index (twi), stream power (spi), curvature and aspect.",
+        ),
+        (
+            f"Land use and lithology ({nf['site_cat']})",
+            "Class codes from the release's land-use and geology maps. With terrain they make up the 'site maps' of the model comparison.",
+        ),
+        (
+            f"Satellite Embedding ({nf['emb']})",
+            "A 64-number summary of what the satellite saw in 2018 at that pixel, from a Google model (e18_A00 to e18_A63).",
+        ),
+        (f"Missing-data flags ({nf['flags']})", "Mark pixels with no cloud-free observation or no wetness index."),
+    ],
+    sub="NDVI is a vegetation index from satellite light: high is dense green, low is bare ground. dB is its change after the storm.",
+    sources="Source: reports/tables/feature_catalogue.csv",
 )
 
 d.map_page(
@@ -304,11 +392,14 @@ d.map_page(
 
 d.map_page(
     "Scores come from whole 3 km blocks held out of training, so spatial neighbours cannot leak into the test",
-    f"{ms['n_blocks_test']} of {ms['n_blocks_eligible']} blocks (seed 42) hold {ms['n_poly_test']} of {ms['n_poly']} polygons and are scored once. The score on page 9 is one run of a frozen model and threshold.",
+    f"{ms['n_blocks_test']} of {ms['n_blocks_eligible']} blocks (seed 42) hold {ms['n_poly_test']} of {ms['n_poly']} polygons and are scored once. The score on page {VERDICT_PAGE} is one run of a frozen model and threshold.",
     map_img["blocks"],
     [
         ("Model choice", "Repeated 5-fold block cross-validation, 5 seeds; models compared at 80% object recall."),
-        ("Why not AUC", "Random folds flatter average precision by up to 0.06 and AUC hides it."),
+        (
+            "Why not AUC",
+            "AUC, a ranking score where 0.5 is a coin flip, hides the false alarms of a rare event; random folds also flatter average precision by up to 0.06.",
+        ),
         ("Excluded", "Five blocks look unmapped and stay out of the domain."),
         (
             "Intervals",
@@ -327,7 +418,7 @@ d.map_page(
 r50 = naive[naive["pixel recall"] == "50%"].iloc[0]
 d.table(
     f"A plain vegetation-loss threshold needs {r50['flagged share of area']} of the area to reach 50% recall, and only {pct(r50['pixel precision'], 0)} of those pixels are scars",
-    ["Pixel recall", "Threshold on -dB", "Pixel precision", "Flagged pixels", "Area flagged"],
+    ["Pixel recall", "Threshold on NDVI loss", "Pixel precision", "Flagged pixels", "Area flagged"],
     [
         [
             r["pixel recall"],
@@ -341,17 +432,18 @@ d.table(
     sub="A threshold alone is a weak detector, so the other features have to remove false alarms.",
     sources="Source: reports/tables/eda_naive_detector.csv",
     highlight=1,
-    note="-dB is NDVI loss (pre-event minus Apr-May post-event); pixel-level; recall of 80% flags a fifth of the area",
+    note="NDVI loss = pre-event NDVI minus April-May 2018 NDVI; pixel-level; recall of 80% flags a fifth of the area",
 )
 
 order = [
     ("c_hgb", "All features (boosting), chosen"),
-    ("a_hgb", "dNDVI + site factors (boosting)"),
-    ("b_hgb", "Embedding + site factors (boosting)"),
+    ("a_hgb", "Vegetation change + site maps (boosting)"),
+    ("b_hgb", "Satellite embedding + site maps (boosting)"),
     ("all_logreg", "All features (logistic)"),
-    ("simple_logreg", "Simple logistic (dNDVI + factors)"),
-    ("naive_dBmin5", "Naive threshold on -dB min5"),
+    ("simple_logreg", "Simple logistic (vegetation change + site maps)"),
+    ("naive_dBmin5", "Naive threshold on vegetation loss"),
 ]
+PAGES["models"] = d.n + 1
 d.table(
     f"Vegetation change and the satellite embedding complement each other: together {pct(mres.loc['c_hgb', 'precision'])} precision at 80% recall, against {pct(mres.loc['a_hgb', 'precision'])} and {pct(mres.loc['b_hgb', 'precision'])} alone",
     ["Model", "Precision at 80% recall", "95% interval", "Area flagged"],
@@ -369,6 +461,7 @@ d.table(
     highlight=0,
 )
 
+PAGES["verdict"] = d.n + 1
 d.numbers(
     f"Recall target met at {pct(c.object_recall_ge5)}, precision target not met at {pct(c.object_precision)}; the criterion stays unchanged",
     [
@@ -399,8 +492,8 @@ d.table(
         ]
         for lab, r in (
             ("Chosen model (boosting)", c),
-            ("Simple logistic (dNDVI + factors)", lg),
-            ("Naive threshold on -dB min5", nv),
+            ("Simple logistic (vegetation change + site maps)", lg),
+            ("Naive threshold on vegetation loss", nv),
         )
     ],
     sub="Same 34 test blocks, 157 polygons (106 of 500 m2 or more). Intervals overlap on recall; they do not on precision.",
@@ -595,7 +688,7 @@ LABELS = {
     "abl_no_ndvi_pixel": "Without pixel NDVI features",
     "abl_no_ndvi_nbr": "Without neighbourhood NDVI features",
     "abl_no_terrain": "Without terrain features",
-    "abl_no_site_cat": "Without categorical site factors",
+    "abl_no_site_cat": "Without land use and lithology",
     "abl_no_distroad": "Without distance to road",
     "abl_no_landuse": "Without land use",
 }
@@ -614,14 +707,22 @@ d.table(
     sub="Groups overlap in information and the intervals are wide: no group was shown to be needed, which is not the same as none mattering.",
     sources="Source: reports/tables/ablation.csv",
     highlight=0,
-    note="first cross-validation repeat; the 7.6% on page 8 is the mean of 5 repeats",
+    note=f"first cross-validation repeat; the 7.6% on page {MODELS_PAGE} is the mean of 5 repeats",
 )
+
+glossary_page(
+    "Appendix: the metrics in plain words",
+    METRICS,
+    sub="Recall and precision are explained on page 4; these are the other terms the results use.",
+)
+glossary_page("Appendix: method and data terms in plain words", METHOD + DATA + DECK)
 
 d.closing(
     "An independent analysis of public data, not an official product and not affiliated with the inventory's authors, BIG or Badan Geologi. "
     "Labels: Samodra et al. 2024 (CC BY 4.0). Sentinel-2: Copernicus. Satellite Embedding: Google and Google DeepMind (CC BY 4.0). Code is MIT licensed; data and reports keep their sources' terms.",
-    authors=("Radikal Lukafiardi, data professional, Jakarta",),
+    authors=("Radikal Lukafiardi",),
     links=(f"https://{SRC_REPO}",),
 )
+assert PAGES == {"models": MODELS_PAGE, "verdict": VERDICT_PAGE}, PAGES
 d.save()
 print("wrote", OUT, "pages", d.n)

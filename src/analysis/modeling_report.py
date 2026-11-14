@@ -13,6 +13,7 @@ import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
 
+from src.analysis.glossary import DATA, METHOD, METRICS
 from src.analysis.html_report import (
     BLUE,
     GREY,
@@ -422,6 +423,11 @@ tried = pd.DataFrame(
 n_test_poly = int(c.polygons_ge5)
 sections = [
     section(
+        "How to read the numbers",
+        "Recall asks how many real scars were found; precision asks how many flags are real. The two targets pull against each other.",
+        table_html(pd.DataFrame(METRICS, columns=["term", "what it means"])),
+    ),
+    section(
         "Result on the held-out blocks",
         f"Recall target met ({pct(c.object_recall_ge5)}, interval {ci(c, 'object_recall_ge5')}); precision target not met ({pct(c.object_precision)}, interval {ci(c, 'object_precision')}). "
         "The criterion was fixed before any model and is unchanged.",
@@ -486,6 +492,11 @@ sections = [
         "<li><b>Label registration.</b> Polygons sit about 12.6 m from the Sentinel-2 grid (shift estimated from the data, cause unverified) and were shifted onto it; predictions shift back by (-8.4 m, -9.4 m) to compare with the manual inventory.</li>"
         "<li><b>Ten-metre imagery.</b> Scars under about 500 m2 are not reliably visible; the review used the same imagery as the model.</li>"
         "<li><b>One event, one place.</b> Nothing here says how it transfers to another storm or region.</li></ul>",
+    ),
+    section(
+        "Terms used in this report",
+        "The method and data terms, in plain words.",
+        table_html(pd.DataFrame(METHOD + DATA, columns=["term", "what it means"])),
     ),
     section(
         "Reproduce",
