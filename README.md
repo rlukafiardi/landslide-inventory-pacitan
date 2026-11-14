@@ -22,6 +22,7 @@ Block cross-validation (3 km blocks) on the training blocks, models compared at 
 ## Deliverable
 `data/processed/candidates_cempaka_pacitan.gpkg` (not committed): 5,865 candidate objects, ranked by probability, in two layers: `candidates_s2_grid` (where the model works) and
 `candidates_inventory_frame` (shifted back by -8.4 m E, -9.4 m N to overlay the manual inventory as published). Review the 1,678 large objects (20 pixels or more) first.
+Deck: `docs/slidepack/landslide_pacitan_deck.pdf`, 22 pages on the results, the limits and four maps (labels, block split, one test block, candidates); built by `docs/slidepack/build_deck.py` and `maps.py`, which read the result tables and the local data and import the slidepack builder from the author's workspace, so they rebuild only there.
 Maps: `reports/figures/candidates_map.png` (all candidates) and `reports/figures/test_blocks_map.png` (six held-out blocks: reference polygons, true objects, false alarms); both are in the report.
 
 ## Data sources and credit
