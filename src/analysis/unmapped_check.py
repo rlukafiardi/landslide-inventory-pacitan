@@ -15,14 +15,14 @@ import joblib
 import numpy as np
 import pandas as pd
 import rasterio
+from rasterio import features as rfeat
 from scipy import ndimage as ndi
 from shapely.geometry import shape
-from rasterio import features as rfeat
 
-from src.data.constants import B, UNMAPPED_BLOCKS
+from src.data.constants import UNMAPPED_BLOCKS, B
 from src.features.build import FDIR, INTERIM, TILE, feature_window
 from src.features.registry import NAMES
-from src.modeling.metrics import EIGHT, objects
+from src.modeling.metrics import objects
 from src.modeling.prep import CONFIGS, SETS, design
 
 op = json.load(open("models/operating_points.json"))["c_hgb"]
@@ -97,7 +97,8 @@ for b in ids:
     rows_out.append(row)
 res = pd.DataFrame(rows_out)
 res.to_csv("reports/tables/unmapped_blocks_check.csv", index=False)
-q = lambda s: f"median {s.median():.2f}, IQR {s.quantile(.25):.2f} to {s.quantile(.75):.2f}"
+def q(s):
+    return f"median {s.median():.2f}, IQR {s.quantile(.25):.2f} to {s.quantile(.75):.2f}"
 print(res.to_string(index=False))
 print(f"\nmapped blocks (n = {len(tab)}, area >= 3 km2), large candidates per km2: all {q(tab.large_all_per_km2)}; false alarms only {q(tab.large_false_per_km2)}")
 print(f"mapped blocks: non-landslide points per block, mean {mapped_nl:.1f}; inventory polygons per block, mean {float(pd.Series(lsb).value_counts().reindex(tab.index, fill_value=0).mean()):.1f}")

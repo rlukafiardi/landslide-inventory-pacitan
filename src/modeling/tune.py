@@ -14,7 +14,7 @@ from src.embedding_utils import auc
 from src.features.build import INTERIM
 from src.modeling.folds import block_folds, fold_of
 from src.modeling.metrics import pixel_ap
-from src.modeling.prep import CONFIGS, SETS, default_params, design, make_model
+from src.modeling.prep import CONFIGS, SETS, design, make_model
 
 t = pd.read_parquet(f"{INTERIM}/features_train.parquet")
 y = t.y.to_numpy() == 1

@@ -18,9 +18,9 @@ Usage: python -m src.supervised_check <features_csv>
 """
 import sys
 
+import geopandas as gpd
 import numpy as np
 import pandas as pd
-import geopandas as gpd
 
 from src.cv_utils import MODELS, SEED, block_boot, blocks, oof, pooled_auc
 from src.embedding_utils import BANDS, auc

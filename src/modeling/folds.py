@@ -41,5 +41,5 @@ def block_folds(seed, size_px=B, n_folds=N_FOLDS):
 
 def fold_of(rows, cols, folds, size_px=B):
     """Fold index of each pixel (-1 if its group is not in the training folds)."""
-    m = dict(zip(folds.group, folds.fold))
+    m = dict(zip(folds.group, folds.fold, strict=True))
     return np.array([m.get(int(x), -1) for x in _group_ids(np.asarray(rows), np.asarray(cols), size_px)])

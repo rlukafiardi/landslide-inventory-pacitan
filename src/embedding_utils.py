@@ -27,7 +27,7 @@ def sample_image(img, pts, scale, props, chunk=4000):
     for i in range(0, len(pts), chunk):
         part = pts.iloc[i:i + chunk]
         fc = ee.FeatureCollection([
-            ee.Feature(ee.Geometry.Point([g.x, g.y]), {"pid": pid}) for pid, g in zip(part.pid, part.geometry)
+            ee.Feature(ee.Geometry.Point([g.x, g.y]), {"pid": pid}) for pid, g in zip(part.pid, part.geometry, strict=True)
         ])
         feats = img.sampleRegions(collection=fc, scale=scale, geometries=False).getInfo()["features"]
         out += [{"pid": f["properties"]["pid"], **{p: f["properties"][p] for p in props}} for f in feats]
@@ -46,7 +46,7 @@ def embedding_distances(pts, years=(2017, 2018, 2019)):
     for y in years[1:]:
         common = common.intersection(emb[y].index)
     out = pd.DataFrame(index=common)
-    for a, b in zip(years[:-1], years[1:]):
+    for a, b in zip(years[:-1], years[1:], strict=True):
         va, vb = emb[a].loc[common, BANDS].to_numpy(), emb[b].loc[common, BANDS].to_numpy()
         va, vb = va / np.linalg.norm(va, axis=1, keepdims=True), vb / np.linalg.norm(vb, axis=1, keepdims=True)
         out[f"d{a % 100}{b % 100}"] = 1 - (va * vb).sum(axis=1)

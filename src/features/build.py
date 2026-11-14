@@ -9,7 +9,6 @@ N_NEG uniformly drawn negative pixels), data/interim/fill_values.json (medians f
 reports/tables/feature_catalogue.csv. Missing values stay NaN in the table; apply_fills() fills them for linear models.
 """
 import json
-import sys
 import time
 from pathlib import Path
 

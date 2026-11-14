@@ -16,12 +16,11 @@ import json
 
 import geopandas as gpd
 import numpy as np
-import pandas as pd
 import rasterio
 from rasterio import features
 from shapely import make_valid
-from shapely.geometry import shape
 from shapely.affinity import translate
+from shapely.geometry import shape
 
 from src.data.constants import SHIFT_E_M, SHIFT_N_M
 from src.data.load import block_mask

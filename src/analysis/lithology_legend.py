@@ -16,6 +16,7 @@ import pandas as pd
 import rasterio
 from PIL import Image
 from pyproj import Transformer
+from scipy import ndimage as ndi
 
 Image.MAX_IMAGE_PIXELS = None
 SCAN = sys.argv[1]
@@ -48,9 +49,9 @@ def sample(params, arr):
 
 def score(params):
     s, ok = sample(params, sea)
-    l = land[::5, ::5]
+    land_s = land[::5, ::5]
     inside = ok & (lon_f >= 0) & (lon_f <= 0.5) & (lat_f >= 0) & (lat_f <= 25 / 60)
-    return float((s[inside] == ~l[inside]).mean())
+    return float((s[inside] == ~land_s[inside]).mean())
 
 
 p = np.array([364.0, 5638.0, 551.0, 4890.0])
@@ -79,7 +80,7 @@ names = list(sw)
 sw_arr = np.array([sw[n] for n in names])
 
 # every raster pixel (stride 2) -> scan pixel under it; a 5 x 5 median removes lines and text
-from scipy import ndimage as ndi
+
 x0, x1, y0, y1 = p
 smooth = np.stack([ndi.median_filter(img[int(y0) - 20:int(y1) + 20, int(x0) - 20:int(x1) + 20, c], size=5) for c in range(3)], axis=2)
 ri, ci = np.mgrid[0:H:2, 0:W:2]

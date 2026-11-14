@@ -13,8 +13,20 @@ import plotly.graph_objects as go
 import rasterio
 from plotly.subplots import make_subplots
 
-from src.analysis.html_report import (BLUE, BLUES, GREY, GRID, INK, MUTED, RED, page, plots_html, save_pngs, section, styled,
-                                      table_html, tile)
+from src.analysis.html_report import (
+    BLUE,
+    BLUES,
+    GREY,
+    INK,
+    RED,
+    page,
+    plots_html,
+    save_pngs,
+    section,
+    styled,
+    table_html,
+    tile,
+)
 from src.data.constants import SHIFT_E_M, SHIFT_N_M
 from src.data.load import block_mask
 from src.embedding_utils import auc
@@ -310,7 +322,8 @@ bfig.update_xaxes(title_text="decile of the feature")
 figs["binned"] = styled(bfig, "Landslide share by decile of each key feature (95% interval over blocks)", height=620)
 tables["binned_rates"] = pd.DataFrame(bin_rows, columns=["feature", "decile", "from", "to", "rate_%", "ci_low", "ci_high"])
 br = tables["binned_rates"]
-g = lambda f, d: float(br[(br.feature == f) & (br.decile == d)]["rate_%"].iloc[0])
+def g(f, d):
+    return float(br[(br.feature == f) & (br.decile == d)]["rate_%"].iloc[0])
 binned_take = (f"Landslide share by decile; intervals resample whole 3 km blocks. dB: {g('dB', 1):.2f}% in the lowest decile against {br[(br.feature == 'dB') & (br.decile >= 3)]['rate_%'].mean():.2f}% "
                f"on average from decile 3 up, so the signal sits in the bottom 10 to 20%. slope: {g('slope', 1):.2f}% to {g('slope', 10):.2f}% from the flattest to the steepest decile. "
                f"distroad: share rises to {g('distroad', 9):.2f}% in decile 9 then drops to {g('distroad', 10):.2f}% in the most remote decile: remote ground may be under-mapped.")
@@ -322,14 +335,15 @@ sections.append(section("Binned view of the key features",
 cat_figs = make_subplots(rows=1, cols=2, subplot_titles=("geology class", "land-use class (names unknown)"), horizontal_spacing=0.12)
 cat_tab = []
 for i, c in enumerate(("geologi", "landuse")):
-    g = s.dropna(subset=[c]).assign(code=lambda d: d[c].astype(int))
+    g = s.dropna(subset=[c])
+    g = g.assign(code=g[c].astype(int))
     t = g.groupby("code").apply(lambda d: pd.Series({"landslide_px": int(d.y.sum()), "area_km2": d.w.sum() * 100 / 1e6,
                                                      "rate_%": (d.w * d.y).sum() / d.w.sum() * 100}), include_groups=False).reset_index()
     t.insert(0, "feature", c)
     cat_tab.append(t)
     t = t.sort_values("rate_%", ascending=False)
     cat_figs.add_trace(go.Bar(x=t.code.astype(str), y=t["rate_%"], marker_color=[BLUE if n >= 30 else GREY for n in t.landslide_px],
-                              hovertext=[f"class {k}: {n} landslide px, {a:.0f} km2" for k, n, a in zip(t.code, t.landslide_px, t.area_km2)], hoverinfo="text"), 1, i + 1)
+                              hovertext=[f"class {k}: {n} landslide px, {a:.0f} km2" for k, n, a in zip(t.code, t.landslide_px, t.area_km2, strict=True)], hoverinfo="text"), 1, i + 1)
 cat_figs.update_yaxes(title_text="landslide % of pixels", col=1)
 cat_figs.update_xaxes(type="category")
 figs["categorical"] = styled(cat_figs, "Rate by class: blue bars have 30 or more landslide pixels, grey bars are thin", height=360)
@@ -337,9 +351,9 @@ tables["categorical_rates"] = pd.concat(cat_tab)
 ct = tables["categorical_rates"]
 geo_t = ct[(ct.feature == "geologi") & (ct.landslide_px >= 30)].sort_values("rate_%", ascending=False)
 lu_t = ct[(ct.feature == "landuse") & (ct.landslide_px >= 30)].sort_values("rate_%", ascending=False)
-cat_take = (f"Pixel rate by class (classes with 30 or more landslide pixels). Geology: highest {', '.join(f'{int(c)} ({r:.2f}%)' for c, r in zip(geo_t.code.head(3), geo_t['rate_%'].head(3)))}, "
-            f"lowest {', '.join(f'{int(c)} ({r:.2f}%)' for c, r in zip(geo_t.code.tail(2), geo_t['rate_%'].tail(2)))}. "
-            f"Land use: highest {', '.join(f'{int(c)} ({r:.2f}%)' for c, r in zip(lu_t.code.head(3), lu_t['rate_%'].head(3)))}, lowest {int(lu_t.code.iloc[-1])} ({lu_t['rate_%'].iloc[-1]:.2f}%).")
+cat_take = (f"Pixel rate by class (classes with 30 or more landslide pixels). Geology: highest {', '.join(f'{int(c)} ({r:.2f}%)' for c, r in zip(geo_t.code.head(3), geo_t['rate_%'].head(3), strict=True))}, "
+            f"lowest {', '.join(f'{int(c)} ({r:.2f}%)' for c, r in zip(geo_t.code.tail(2), geo_t['rate_%'].tail(2), strict=True))}. "
+            f"Land use: highest {', '.join(f'{int(c)} ({r:.2f}%)' for c, r in zip(lu_t.code.head(3), lu_t['rate_%'].head(3), strict=True))}, lowest {int(lu_t.code.iloc[-1])} ({lu_t['rate_%'].iloc[-1]:.2f}%).")
 sections.append(section("Categorical features vs target", cat_take, "<div>@@categorical@@</div>"))
 
 # ------------------------------------------------------------------ 6. correlations, VIF, outliers
@@ -429,8 +443,8 @@ def morans(vals, valid, n_perm=499):
 mi_rows = []
 for px in (150, 300, 600):
     nr, nc = -(-H // px), -(-Wd // px)
-    pad = lambda a: np.pad(a.astype(float), ((0, nr * px - H), (0, nc * px - Wd)))
-    tp_, pp_ = pad(train & (label != 255)), pad(train & (label == 1))
+    pad = ((0, nr * px - H), (0, nc * px - Wd))
+    tp_, pp_ = (np.pad(m.astype(float), pad) for m in (train & (label != 255), train & (label == 1)))
     tsum = tp_.reshape(nr, px, nc, px).sum((1, 3))
     psum = pp_.reshape(nr, px, nc, px).sum((1, 3))
     valid = tsum >= 0.5 * px * px

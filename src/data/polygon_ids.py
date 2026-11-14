@@ -28,7 +28,7 @@ with rasterio.open(f"{OUT}/block.tif") as r:
 ls = gpd.read_file(f"{FDIR}/landslide_pacitan.gpkg").to_crs(crs)
 ls["geometry"] = ls.geometry.translate(SHIFT_E_M, SHIFT_N_M)
 ids = np.arange(1, len(ls) + 1)
-poly = features.rasterize(zip(ls.geometry, ids), out_shape=(H, W), transform=tr, fill=0, dtype="int32", all_touched=True)
+poly = features.rasterize(zip(ls.geometry, ids, strict=True), out_shape=(H, W), transform=tr, fill=0, dtype="int32", all_touched=True)
 rp = ls.geometry.representative_point()
 pr = np.clip(((tr.f - rp.y) / 10).astype(int), 0, H - 1)
 pc = np.clip(((rp.x - tr.c) / 10).astype(int), 0, W - 1)

@@ -12,7 +12,6 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
-import rasterio
 
 from src.data.constants import B
 from src.data.load import block_mask

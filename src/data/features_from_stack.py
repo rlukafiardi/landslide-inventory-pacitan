@@ -15,7 +15,7 @@ from src.data.constants import SHIFT_E_M, SHIFT_N_M
 poc = pd.read_csv(sys.argv[1], index_col="pid")
 xy = gpd.GeoSeries(gpd.points_from_xy(poc.lon, poc.lat), index=poc.index, crs=4326).to_crs(32749)
 land = (poc.grp == "landslide").to_numpy()
-pts = list(zip(xy.x + np.where(land, SHIFT_E_M, 0), xy.y + np.where(land, SHIFT_N_M, 0)))
+pts = list(zip(xy.x + np.where(land, SHIFT_E_M, 0), xy.y + np.where(land, SHIFT_N_M, 0), strict=True))
 out = poc[["grp", "area", "lon", "lat"]].copy()
 for y in (2017, 2018):
     with rasterio.open(f"data/interim/emb{y}.tif") as r:

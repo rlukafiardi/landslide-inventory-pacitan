@@ -6,7 +6,6 @@ c = everything. Linear models get one-hot land use / geology and training-median
 import json
 
 import numpy as np
-import pandas as pd
 from sklearn.ensemble import HistGradientBoostingClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.pipeline import make_pipeline

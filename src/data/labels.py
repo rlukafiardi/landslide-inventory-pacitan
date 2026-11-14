@@ -16,7 +16,7 @@ import pandas as pd
 import rasterio
 from rasterio import features
 
-from src.data.constants import B, RING_M, SHIFT_E_M, SHIFT_N_M, UNMAPPED_BLOCKS
+from src.data.constants import RING_M, SHIFT_E_M, SHIFT_N_M, UNMAPPED_BLOCKS, B
 
 FDIR = sys.argv[1]
 OUT = "data/interim"

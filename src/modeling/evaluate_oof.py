@@ -19,7 +19,7 @@ from sklearn.metrics import average_precision_score
 
 from src.data.load import block_mask
 from src.features.build import INTERIM
-from src.modeling.metrics import EIGHT, object_metrics
+from src.modeling.metrics import EIGHT
 
 OOF = Path(INTERIM) / "oof"
 SHARES = [0.0005, 0.001, 0.002, 0.003, 0.005, 0.0075, 0.01, 0.015, 0.02, 0.03, 0.04, 0.06, 0.08, 0.12]

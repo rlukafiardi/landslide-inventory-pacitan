@@ -16,7 +16,7 @@ coll = ee.ImageCollection(COLLECTION)
 parts = [meta[["grp", "area", "lon", "lat"]]]
 for y in (2017, 2018):
     e = sample_image(coll.filterDate(f"{y}-01-01", f"{y + 1}-01-01").mosaic(), pts, 10, BANDS)
-    parts.append(e.rename(columns=lambda b: f"e{y % 100}_{b}"))
+    parts.append(e.add_prefix(f"e{y % 100}_"))
 for name, (s, e) in S2_WINDOWS.items():
     parts.append(sample_image(ndvi_composite(s, e), pts, 10, ["ndvi"]).ndvi.rename(name))
 out = pd.concat(parts, axis=1, join="inner")

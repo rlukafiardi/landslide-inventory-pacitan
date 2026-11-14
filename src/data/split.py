@@ -16,8 +16,8 @@ SEED, TEST_FRAC = 42, 0.20
 if os.path.exists(OUT):
     raise SystemExit(f"{OUT} exists: the test set is carved once; refusing to overwrite")
 
-with rasterio.open("data/interim/block.tif") as b, rasterio.open("data/interim/label.tif") as l:
-    block, label = b.read(1), l.read(1)
+with rasterio.open("data/interim/block.tif") as b, rasterio.open("data/interim/label.tif") as lab:
+    block, label = b.read(1), lab.read(1)
 m = block >= 0
 tab = pd.DataFrame({"block": block[m], "pos": (label[m] == 1).astype(int)}).groupby("block").agg(px=("block", "size"), pos=("pos", "sum"))
 tab = tab[tab.px >= 0.2 * 300 * 300]  # skip slivers of coast blocks: they join the training side below

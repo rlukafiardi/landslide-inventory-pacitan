@@ -69,7 +69,7 @@ class Chips:
         mask = lab[r0:r0 + CHIP, c0:c0 + CHIP] == o
         fig, ax = plt.subplots(1, 4, figsize=(9.6, 2.6), dpi=90)
         panels = [("Before (Aug-Oct 2017)", stretch(pre)), ("After (Apr-May 2018)", stretch(post)), ("After, flagged object", stretch(post)), ("NDVI change", None)]
-        for a, (t, img) in zip(ax, panels):
+        for a, (t, img) in zip(ax, panels, strict=True):
             if img is None:
                 a.imshow(self.dB[r0:r0 + CHIP, c0:c0 + CHIP], cmap="RdBu", vmin=-0.5, vmax=0.5, interpolation="nearest")
             else:

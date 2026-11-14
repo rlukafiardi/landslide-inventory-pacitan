@@ -39,7 +39,7 @@ dB = nd[2] - nd[0]
 big = poly[poly.size_class != "<5 px"]
 top = big.groupby("block").size().sort_values(ascending=False).head(6).index.tolist()
 fig, axes = plt.subplots(2, 3, figsize=(11, 7.6), dpi=110)
-for ax, b in zip(axes.ravel(), top):
+for ax, b in zip(axes.ravel(), top, strict=False):
     rr, cc = np.nonzero(scene.block == b)
     sl = (slice(rr.min(), rr.max() + 1), slice(cc.min(), cc.max() + 1))
     ax.imshow(-dB[sl], cmap="Greys", vmin=-0.1, vmax=0.45, interpolation="nearest")

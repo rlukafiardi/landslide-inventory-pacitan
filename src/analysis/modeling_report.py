@@ -6,13 +6,25 @@ Usage: python -m src.analysis.modeling_report
 """
 import base64
 import html
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
-from pathlib import Path
 
-from src.analysis.html_report import BLUE, GREY, GRID, INK, MUTED, RED, page, plots_html, save_pngs, section, styled, table_html, tile
+from src.analysis.html_report import (
+    BLUE,
+    GREY,
+    INK,
+    MUTED,
+    page,
+    plots_html,
+    save_pngs,
+    section,
+    styled,
+    table_html,
+    tile,
+)
 
 T = "reports/tables"
 AMBER = "#e6a23c"
@@ -23,8 +35,10 @@ test = pd.read_csv(f"{T}/test_results.csv").set_index("model")
 oof = pd.read_csv(f"{T}/rehearsal_results.csv").set_index("model")
 tcurve, ocurve = pd.read_csv(f"{T}/test_curve.csv"), pd.read_csv(f"{T}/rehearsal_curve.csv")
 c = test.loc["c_hgb"]
-pct = lambda v: f"{100 * v:.1f}%"
-ci = lambda row, k: f"{pct(row[k + '_ci_low'])} to {pct(row[k + '_ci_high'])}"
+def pct(v):
+    return f"{100 * v:.1f}%"
+def ci(row, k):
+    return f"{pct(row[k + '_ci_low'])} to {pct(row[k + '_ci_high'])}"
 
 
 def recall_at_precision(curve, p=0.30):
@@ -49,7 +63,7 @@ figs = {}
 f = go.Figure()
 rows = [("Object precision", c.object_precision, c.object_precision_ci_low, c.object_precision_ci_high, 0.30),
         ("Object recall (polygons >= 5 px)", c.object_recall_ge5, c.object_recall_ge5_ci_low, c.object_recall_ge5_ci_high, 0.80)]
-for y, (name, v, lo, hi, tgt) in enumerate(rows):
+for y, (_name, v, lo, hi, tgt) in enumerate(rows):
     f.add_trace(go.Scatter(x=[100 * v], y=[y], mode="markers+text", text=[pct(v)], textposition="top center", showlegend=False,
                            marker=dict(color=BLUE, size=13), error_x=dict(type="data", symmetric=False, array=[100 * (hi - v)], arrayminus=[100 * (v - lo)], color=BLUE, thickness=2)))
     f.add_trace(go.Scatter(x=[100 * tgt], y=[y], mode="markers+text", text=[f"target {100 * tgt:.0f}%"], textposition="bottom center", showlegend=False,
@@ -70,7 +84,7 @@ figs["workload"] = styled(f, "About 10 false objects to check per true scar, aga
 
 # 3 curve
 f = go.Figure()
-for name, d, col, dash in (("Out-of-fold (training blocks)", ocurve, GREY, "solid"), ("Test blocks", tcurve, BLUE, "solid")):
+for name, d, col, _dash in (("Out-of-fold (training blocks)", ocurve, GREY, "solid"), ("Test blocks", tcurve, BLUE, "solid")):
     d = d.sort_values("object_recall_ge5")
     f.add_trace(go.Scatter(x=100 * d.object_recall_ge5, y=100 * d.object_precision, mode="lines+markers", name=name, line=dict(color=col, width=2.5), marker=dict(size=6)))
 for name, row, col in (("frozen point, test", test.loc["c_hgb"], BLUE), ("frozen point, out-of-fold", oof.loc["c_hgb"], GREY)):
@@ -102,7 +116,7 @@ figs["review"] = styled(f, "Reviewers recognise known scars, and almost no large
 # 5 size of objects (test)
 sz = pd.read_csv(f"{T}/test_error_analysis_size_px.csv")
 labels = ["3-4 px", "5-9 px", "10-19 px", "20 px or more"]
-f = go.Figure(go.Bar(x=labels, y=100 * sz.precision, marker_color=[GREY, GREY, GREY, BLUE], text=[f"{100 * p:.0f}%<br>{n:,} objects" for p, n in zip(sz.precision, sz.objects)],
+f = go.Figure(go.Bar(x=labels, y=100 * sz.precision, marker_color=[GREY, GREY, GREY, BLUE], text=[f"{100 * p:.0f}%<br>{n:,} objects" for p, n in zip(sz.precision, sz.objects, strict=True)],
                      textposition="outside", showlegend=False))
 f.update_yaxes(range=[0, 30], ticksuffix="%", title="object precision")
 f.update_xaxes(title="predicted object size (10 m pixels)")
@@ -153,8 +167,8 @@ mr = pd.read_csv(f"{T}/modeling_results.csv")
 mr = mr[mr.recall_target == 0.8].copy()
 names_map = {"naive_dB": "Naive threshold on -dB", "naive_dBmin5": "Naive threshold on -dB min5", "floor_logreg": "Site factors only (logistic)", "simple_logreg": "Simple logistic (dNDVI + factors)",
              "emb_logreg": "Embedding + factors (logistic)", "all_logreg": "All features (logistic)", "a_hgb": "dNDVI + factors (boosting)", "b_hgb": "Embedding + factors (boosting)", "c_hgb": "All features (boosting), chosen"}
-hist = pd.DataFrame({"model": [names_map[m] for m in mr.config], "reached 80% recall": [f"{int(r)} of {int(n)}" for r, n in zip(mr.reached, mr.repeats)],
-                     "object precision (95% interval)": [f"{pct(p)} ({pct(a)} to {pct(b)})" if p == p else "not reached" for p, a, b in zip(mr.precision, mr.ci_low, mr.ci_high)],
+hist = pd.DataFrame({"model": [names_map[m] for m in mr.config], "reached 80% recall": [f"{int(r)} of {int(n)}" for r, n in zip(mr.reached, mr.repeats, strict=True)],
+                     "object precision (95% interval)": [f"{pct(p)} ({pct(a)} to {pct(b)})" if p == p else "not reached" for p, a, b in zip(mr.precision, mr.ci_low, mr.ci_high, strict=True)],
                      "flagged share": [pct(v) if v == v else "-" for v in mr.flagged_share], "weighted pixel AP": [f"{v:.2f}" for v in mr.weighted_pixel_AP]}).sort_values("model")
 pairs = pd.read_csv(f"{T}/modeling_pairs.csv")
 gate = pairs[(pairs.config == "c_hgb") & (pairs.baseline == "simple_logreg")].iloc[0]

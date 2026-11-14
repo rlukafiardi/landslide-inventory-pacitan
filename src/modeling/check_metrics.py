@@ -87,7 +87,7 @@ poly_tab = pd.read_parquet("data/interim/polygons.parquet")
 f = block_folds(0)
 tr_poly = poly_tab[poly_tab.in_train]
 g = (tr_poly.block // 100) * 1000 + tr_poly.block % 100
-per = tr_poly.assign(fold=g.map(dict(zip(f.group, f.fold))))
+per = tr_poly.assign(fold=g.map(dict(zip(f.group, f.fold, strict=True))))
 check("every training polygon lands in a fold, each fold holds all three size classes",
       per.fold.notna().all() and (per.groupby("fold").size_class.nunique() == 3).all(),
       "(polygons per fold " + str(per.groupby("fold").size().tolist()) + ")")

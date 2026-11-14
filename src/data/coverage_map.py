@@ -30,7 +30,7 @@ H, W = valid.shape
 ls = gpd.read_file(f"{fdir}/landslide_pacitan.gpkg")
 p = ls.geometry.representative_point()
 rows, cols = ((tr.f - p.y.to_numpy()) / 10).astype(int), ((p.x.to_numpy() - tr.c) / 10).astype(int)
-hit = {(a // B, b // B) for a, b in zip(rows, cols)}
+hit = {(a // B, b // B) for a, b in zip(rows, cols, strict=True)}
 inreg = valid & (geo != gnd)
 cls_km2 = {c: (inreg & (geo == c)).sum() * 100 / 1e6 for c in np.unique(geo[inreg])}
 cls_n = {c: int((geo[rows, cols] == c).sum()) for c in cls_km2}

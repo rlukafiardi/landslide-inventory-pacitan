@@ -29,7 +29,7 @@ from src.embedding_utils import BANDS, auc
 feat_csv, fdir = sys.argv[1:3]
 d = pd.read_csv(feat_csv, index_col="pid")
 xy = gpd.GeoSeries(gpd.points_from_xy(d.lon, d.lat), index=d.index, crs=4326).to_crs(32749)
-coords = list(zip(xy.x, xy.y))
+coords = list(zip(xy.x, xy.y, strict=True))
 
 NUM = ["distriv", "distroad", "elev", "planc", "profc", "slope", "spi", "twi"]
 CAT = ["geologi", "landuse"]

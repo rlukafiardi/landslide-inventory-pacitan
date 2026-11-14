@@ -19,7 +19,7 @@ prob = np.asarray(np.load(f"{INTERIM}/oof/c_hgb_r0.npy", mmap_mode="r"))
 train = block_mask("train")
 pol = scene.polygons[scene.polygons.in_train]
 obj, poly, _ = score_objects(scene, prob, thr, a_min, train, pol)
-ref = object_metrics(prob, thr, a_min, scene.poly, dict(zip(pol.id, pol.size_class)), scene.ring, train, pol.id.to_numpy())
+ref = object_metrics(prob, thr, a_min, scene.poly, dict(zip(pol.id, pol.size_class, strict=True)), scene.ring, train, pol.id.to_numpy())
 
 big = poly.size_class != "<5 px"
 mine = {"pred_objects": len(obj), "tp_objects": int(obj.tp.sum()), "precision": obj.tp.mean(), "recall_ge5": poly.detected[big].mean(), "strict_ge5": poly.strict[big].mean()}
