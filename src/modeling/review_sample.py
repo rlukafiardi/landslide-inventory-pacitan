@@ -9,6 +9,7 @@ Imagery is the same Sentinel-2 composite as the model input, not the 50 cm image
 are judgeable; the page links each chip to a satellite view in Google Maps (grid coordinates are Sentinel-2-true, no shift needed).
 Chip and page code: review_page.py. Needs the Earth Engine login (.env). Usage: python -m src.modeling.review_sample [config_r<seed>]
 """
+
 import json
 import sys
 
@@ -30,7 +31,9 @@ THR, AMIN = np.float64(op.thr), int(op.a_min)  # np.float64, not float: see the 
 
 
 prob = np.asarray(np.load(f"{INTERIM}/oof/{NAME}.npy", mmap_mode="r"))
-poly, block, label = (read(f"{INTERIM}/{n}.tif") for n in ("poly_id", "block", "label"))  # label: 255 is the ring, read as stored
+poly, block, label = (
+    read(f"{INTERIM}/{n}.tif") for n in ("poly_id", "block", "label")
+)  # label: 255 is the ring, read as stored
 ring = (label == 255) & (block >= 0)
 train = block_mask("train")
 lab, n = ndi.label((prob >= THR) & train, structure=EIGHT)
@@ -44,7 +47,9 @@ rng = np.random.default_rng(SEED)
 fa = rng.choice(big[~is_true[big]], N_FA, replace=False)
 ctrl = rng.choice(big[is_true[big]], N_CTRL, replace=False)
 sample = rng.permutation(np.r_[fa, ctrl])
-print(f"{NAME}: threshold {THR:.3f}; large objects {len(big)} ({int((~is_true[big]).sum())} false alarms, {int(is_true[big].sum())} true); sampling {N_FA} + {N_CTRL}")
+print(
+    f"{NAME}: threshold {THR:.3f}; large objects {len(big)} ({int((~is_true[big]).sum())} false alarms, {int(is_true[big].sum())} true); sampling {N_FA} + {N_CTRL}"
+)
 
 chips = Chips()
 rows, cards = [], []

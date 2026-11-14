@@ -1,6 +1,7 @@
 """Sample 2017 and 2018 embeddings and Sentinel-2 NDVI composites at the matched points -> features.csv.
 Usage: python -m src.build_features <matched_points_csv> <out_csv>
 """
+
 import sys
 
 import ee
@@ -21,5 +22,14 @@ for name, (s, e) in S2_WINDOWS.items():
     parts.append(sample_image(ndvi_composite(s, e), pts, 10, ["ndvi"]).ndvi.rename(name))
 out = pd.concat(parts, axis=1, join="inner")
 out = out.dropna(subset=[c for c in out.columns if c != "area"])
-print("points with all features:", len(out), "of", len(meta), "| landslide", int((out.grp == "landslide").sum()), "| background", int((out.grp == "background").sum()))
+print(
+    "points with all features:",
+    len(out),
+    "of",
+    len(meta),
+    "| landslide",
+    int((out.grp == "landslide").sum()),
+    "| background",
+    int((out.grp == "background").sum()),
+)
 out.to_csv(sys.argv[2])

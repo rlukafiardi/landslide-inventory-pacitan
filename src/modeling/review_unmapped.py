@@ -8,6 +8,7 @@ c_hgb repeat 0 at its 80%-recall point). The reference false alarms show what a 
 are no more often "scar" than those, the block is not under-mapped. Key (not in the page): data/interim/review_unmapped_key.csv.
 Needs the Earth Engine login (.env). Usage: python -m src.modeling.review_unmapped
 """
+
 import geopandas as gpd
 import numpy as np
 import pandas as pd
@@ -54,9 +55,14 @@ true_m[np.unique(lab_m[((poly > 0) | ring) & (lab_m > 0)])] = True
 rng = np.random.default_rng(SEED)
 ctrl = rng.choice(big_m[true_m[big_m]], N_CTRL, replace=False)
 fa = rng.choice(big_m[~true_m[big_m]], N_FA, replace=False)
-items = [("candidate_810", lab_u, p_fin, sz_u, o) for o in big_u] + [("control_true", lab_m, p_oof, sz_m, o) for o in ctrl] + \
-        [("false_alarm_mapped", lab_m, p_oof, sz_m, o) for o in fa]
-print(f"block {BLOCK}: {len(big_u)} large candidates (expected 33); sampling {N_CTRL} true + {N_FA} false alarms from mapped blocks")
+items = (
+    [("candidate_810", lab_u, p_fin, sz_u, o) for o in big_u]
+    + [("control_true", lab_m, p_oof, sz_m, o) for o in ctrl]
+    + [("false_alarm_mapped", lab_m, p_oof, sz_m, o) for o in fa]
+)
+print(
+    f"block {BLOCK}: {len(big_u)} large candidates (expected 33); sampling {N_CTRL} true + {N_FA} false alarms from mapped blocks"
+)
 
 chips = Chips()
 rows, cards = [], []
@@ -67,5 +73,7 @@ for k, i in enumerate(np.random.default_rng(SEED + 1).permutation(len(items)), 1
     rows.append({**row, "kind": kind, "object": int(o)})
 key = pd.DataFrame(rows)[["id", "kind", "object", "size_px", "lat", "lon", "slope_deg", "pmax"]]
 key.to_csv(f"{INTERIM}/review_unmapped_key.csv", index=False)
-open("reports/review_unmapped.html", "w").write(page(cards, "landslide_review_unmapped_v1", "landslide_review_unmapped_answers.csv"))
+open("reports/review_unmapped.html", "w").write(
+    page(cards, "landslide_review_unmapped_v1", "landslide_review_unmapped_answers.csv")
+)
 print(f"written reports/review_unmapped.html ({len(rows)} chips); key in {INTERIM}/review_unmapped_key.csv")

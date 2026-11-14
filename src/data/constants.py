@@ -1,4 +1,5 @@
 """Constants shared by the data steps (one place, so the shift and the block size cannot drift apart)."""
+
 B = 300  # 3 km block in pixels (10 m grid)
 RING_M = 20  # exclusion ring around polygons
 # Inventory polygons sit about 12.6 m south-west of the Sentinel-2 / embedding grid (src/data/estimate_shift.py: the vegetation-loss

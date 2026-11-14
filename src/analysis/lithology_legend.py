@@ -8,6 +8,7 @@ The raster carries more codes than the sheet shows (15 against 13 units): codes 
 fills (the two limestones, the yellow tuffs) cannot be told apart by colour, so only groups are named. Terrain (median elevation, slope) is added as a second signal.
 Usage: python -m src.analysis.lithology_legend <path to the scan .jpg>
 """
+
 import glob
 import sys
 
@@ -33,7 +34,9 @@ x = tr.c + (cols_i + 0.5) * 10
 y = tr.f - (rows_i + 0.5) * 10
 lon, lat = to_ll.transform(x, y)
 lon_f, lat_f = lon - 111.0, -8.0 - lat  # degrees east of the left edge, south of the top edge
-sea = (img[..., 2] - img[..., 0] >= 3) & (img.mean(2) > 215)  # the sea is a pale blue; land units and paper are not bluer than red
+sea = (img[..., 2] - img[..., 0] >= 3) & (
+    img.mean(2) > 215
+)  # the sea is a pale blue; land units and paper are not bluer than red
 print("share of the scan classed as sea:", round(float(sea.mean()), 3))
 
 
@@ -70,11 +73,24 @@ print("fitted corners (x0, x1, y0, y1):", p.round(1), "agreement", round(best, 4
 np.save("data/interim/lithology_scan_corners.npy", p)
 
 # legend swatch centres in the scan (pixels), read off the legend panel; colours are medians over a small box without dark (text) pixels
-SWATCH = {"Qa": (2377, 6066), "Qpk": (2377, 6151), "Tmwl": (2380, 6233), "Tmo": (2380, 6359), "Tmn": (2380, 6499), "Tmw": (2380, 6635), "Tmj": (2382, 6820),
-          "Tmcl": (2386, 6982), "Tms": (2389, 7064), "Toma": (2389, 7145), "Tomw": (2393, 7333), "Tomm": (2393, 7437), "Tomi": (2396, 7614)}
+SWATCH = {
+    "Qa": (2377, 6066),
+    "Qpk": (2377, 6151),
+    "Tmwl": (2380, 6233),
+    "Tmo": (2380, 6359),
+    "Tmn": (2380, 6499),
+    "Tmw": (2380, 6635),
+    "Tmj": (2382, 6820),
+    "Tmcl": (2386, 6982),
+    "Tms": (2389, 7064),
+    "Toma": (2389, 7145),
+    "Tomw": (2393, 7333),
+    "Tomm": (2393, 7437),
+    "Tomi": (2396, 7614),
+}
 sw = {}
 for n, (cx, cy) in SWATCH.items():
-    box = img[cy - 8:cy + 9, cx - 8:cx + 9].reshape(-1, 3)
+    box = img[cy - 8 : cy + 9, cx - 8 : cx + 9].reshape(-1, 3)
     sw[n] = np.median(box[box.mean(1) > 110], axis=0)
 names = list(sw)
 sw_arr = np.array([sw[n] for n in names])
@@ -82,7 +98,10 @@ sw_arr = np.array([sw[n] for n in names])
 # every raster pixel (stride 2) -> scan pixel under it; a 5 x 5 median removes lines and text
 
 x0, x1, y0, y1 = p
-smooth = np.stack([ndi.median_filter(img[int(y0) - 20:int(y1) + 20, int(x0) - 20:int(x1) + 20, c], size=5) for c in range(3)], axis=2)
+smooth = np.stack(
+    [ndi.median_filter(img[int(y0) - 20 : int(y1) + 20, int(x0) - 20 : int(x1) + 20, c], size=5) for c in range(3)],
+    axis=2,
+)
 ri, ci = np.mgrid[0:H:2, 0:W:2]
 X = tr.c + (ci + 0.5) * 10
 Y = tr.f - (ri + 0.5) * 10
@@ -114,8 +133,15 @@ def layer(name):
     return a
 
 
-terrain = pd.DataFrame({"code": code.ravel(), "elev": layer("map_elev.tif").ravel(), "slope": layer("map_slope.tif").ravel()})
-terrain = terrain[terrain.code != nd].groupby("code").agg(raster_pct=("elev", "size"), elev_median_m=("elev", "median"), slope_median_deg=("slope", "median")).round(1)
+terrain = pd.DataFrame(
+    {"code": code.ravel(), "elev": layer("map_elev.tif").ravel(), "slope": layer("map_slope.tif").ravel()}
+)
+terrain = (
+    terrain[terrain.code != nd]
+    .groupby("code")
+    .agg(raster_pct=("elev", "size"), elev_median_m=("elev", "median"), slope_median_deg=("slope", "median"))
+    .round(1)
+)
 terrain["raster_pct"] = (100 * terrain.raster_pct / terrain.raster_pct.sum()).round(2)
 out = terrain.join(out, how="left")
 out.to_csv("reports/tables/lithology_legend_crosstab.csv")

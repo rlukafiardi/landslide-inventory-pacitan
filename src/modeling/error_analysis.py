@@ -8,6 +8,7 @@ tables(scene, obj, poly, mask) takes the object and polygon tables of objects.sc
 CLI: the out-of-fold raster of one repeat on the training blocks -> reports/tables/error_analysis_*.csv. evaluate_test.py calls
 tables() on the test blocks. Usage: python -m src.modeling.error_analysis [config_r<seed>]
 """
+
 import sys
 
 import numpy as np
@@ -42,15 +43,34 @@ def _det_by(big, col, bins=None):
 
 def tables(scene, obj, poly, mask):
     obj = obj.rename(columns={"size": "size_px", "distriv": "distriv_m"})
-    out = {"size_px": _by(obj, "size_px", SZ), "slope_deg": _by(obj, "slope", SL).rename_axis("slope"), "landuse": _by(obj, "landuse"),
-           "distriv_m": _by(obj, "distriv_m", RIV)}
-    dom = pd.Series(scene.landuse[mask & ~np.isnan(scene.landuse)].astype(int)).value_counts(normalize=True).sort_index().round(4)
+    out = {
+        "size_px": _by(obj, "size_px", SZ),
+        "slope_deg": _by(obj, "slope", SL).rename_axis("slope"),
+        "landuse": _by(obj, "landuse"),
+        "distriv_m": _by(obj, "distriv_m", RIV),
+    }
+    dom = (
+        pd.Series(scene.landuse[mask & ~np.isnan(scene.landuse)].astype(int))
+        .value_counts(normalize=True)
+        .sort_index()
+        .round(4)
+    )
     out["landuse"]["share_of_domain_area"] = dom.reindex(out["landuse"].index).to_numpy()
     fa = obj[~obj.tp]
-    base = pd.cut(pd.Series(scene.dist_poly_m[mask].ravel()).sample(2_000_000, random_state=0, replace=mask.sum() < 2_000_000), NEAR, right=False)
-    out["false_alarm_distance_to_polygon"] = pd.DataFrame({
-        "false_alarm_share": pd.cut(fa.dist_poly_m, NEAR, right=False).value_counts(normalize=True).sort_index().round(3),
-        "domain_area_share": base.value_counts(normalize=True).sort_index().round(3)})
+    base = pd.cut(
+        pd.Series(scene.dist_poly_m[mask].ravel()).sample(2_000_000, random_state=0, replace=mask.sum() < 2_000_000),
+        NEAR,
+        right=False,
+    )
+    out["false_alarm_distance_to_polygon"] = pd.DataFrame(
+        {
+            "false_alarm_share": pd.cut(fa.dist_poly_m, NEAR, right=False)
+            .value_counts(normalize=True)
+            .sort_index()
+            .round(3),
+            "domain_area_share": base.value_counts(normalize=True).sort_index().round(3),
+        }
+    )
     big = poly[poly.size_class != "<5 px"].rename(columns={"distriv": "distriv_m"})
     out["miss_by_area_m2"] = _det_by(big, "area_m2", [0, 500, 1000, 2000, 5000, 1e9])
     out["miss_by_slope"] = _det_by(big, "slope", SL)
@@ -70,8 +90,10 @@ if __name__ == "__main__":
     train = block_mask("train")
     obj, poly, _ = score_objects(scene, prob, thr, a_min, train, scene.polygons[scene.polygons.in_train])
     big = poly[poly.size_class != "<5 px"]
-    print(f"{name}: threshold {thr:.3f}, a_min {a_min}; objects {len(obj):,}: true {int(obj.tp.sum()):,}, false alarms {int((~obj.tp).sum()):,} "
-          f"(precision {obj.tp.mean():.3f}); polygons >= 5 px {len(big)}, detected {int(big.detected.sum())} (recall {big.detected.mean():.3f})")
+    print(
+        f"{name}: threshold {thr:.3f}, a_min {a_min}; objects {len(obj):,}: true {int(obj.tp.sum()):,}, false alarms {int((~obj.tp).sum()):,} "
+        f"(precision {obj.tp.mean():.3f}); polygons >= 5 px {len(big)}, detected {int(big.detected.sum())} (recall {big.detected.mean():.3f})"
+    )
     for k, df in tables(scene, obj, poly, train).items():
         df.to_csv(f"reports/tables/error_analysis_{k}.csv")
         print(f"\n== {k}\n{df.to_string()}")

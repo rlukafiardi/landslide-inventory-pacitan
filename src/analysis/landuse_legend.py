@@ -4,6 +4,7 @@ share of its pixels falling in each RBI layer is written to reports/tables/landu
 The RBI edition (2022) is newer than the release raster (built Aug 2021), so a code-to-class match is an inference, graded by how dominant the layer is.
 Usage: python -m src.analysis.landuse_legend <path to 2022_RBI25K_KABPACITAN.gdb>
 """
+
 import sys
 import warnings
 
@@ -16,9 +17,29 @@ from rasterio.features import rasterize
 from src.features.build import FDIR
 
 GDB = sys.argv[1]  # path to 2022_RBI25K_KABPACITAN.gdb
-LAYERS = ["PERMUKIMAN_AR_25K", "PERUMAHAN_AR_25K", "INDUSTRIPARIWISATA_AR_25K", "SAWAH_AR_25K", "LADANG_AR_25K", "PERKEBUNAN_AR_25K", "TANAMANCAMPUR_AR_25K",
-          "SEMAKBELUKAR_AR_25K", "HERBADANRUMPUT_AR_25K", "HUTANLAHANTINGGI_AR_25K", "HUTANLAHANRENDAH_AR_25K", "HUTANTANAMAN_AR_25K",
-          "SUNGAI_AR_25K", "WADUK_AR_25K", "DANAU_AR_25K", "EMBUNG_AR_25K", "EMPANG_AR_25K", "TAMBAK_AR_25K", "PASIR_AR_25K", "PESISIR_AR_25K", "DERMAGA_AR_25K"]
+LAYERS = [
+    "PERMUKIMAN_AR_25K",
+    "PERUMAHAN_AR_25K",
+    "INDUSTRIPARIWISATA_AR_25K",
+    "SAWAH_AR_25K",
+    "LADANG_AR_25K",
+    "PERKEBUNAN_AR_25K",
+    "TANAMANCAMPUR_AR_25K",
+    "SEMAKBELUKAR_AR_25K",
+    "HERBADANRUMPUT_AR_25K",
+    "HUTANLAHANTINGGI_AR_25K",
+    "HUTANLAHANRENDAH_AR_25K",
+    "HUTANTANAMAN_AR_25K",
+    "SUNGAI_AR_25K",
+    "WADUK_AR_25K",
+    "DANAU_AR_25K",
+    "EMBUNG_AR_25K",
+    "EMPANG_AR_25K",
+    "TAMBAK_AR_25K",
+    "PASIR_AR_25K",
+    "PESISIR_AR_25K",
+    "DERMAGA_AR_25K",
+]
 warnings.filterwarnings("ignore")
 
 with rasterio.open(f"{FDIR}/map_landuse.tif") as r:

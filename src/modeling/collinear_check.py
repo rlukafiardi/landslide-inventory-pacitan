@@ -6,6 +6,7 @@ its 95% interval over the same block resamples, and recall at that point. Same t
 Prepare with: python -m src.modeling.ablate <seed> simple_logreg_no_diff all_logreg_no_diff (seeds 0-4), then evaluate_oof for the pairs.
 Usage: python -m src.modeling.collinear_check
 """
+
 import numpy as np
 import pandas as pd
 
@@ -22,9 +23,20 @@ for base in ("simple_logreg", "all_logreg"):
         d = d[~np.isnan(d)]
         lo, hi = np.percentile(d, [2.5, 97.5])
         a, b = raw.loc[(base, seed)], raw.loc[(var, seed)]
-        rows.append({"base": base, "repeat": seed, "precision_with_dAdB": a.precision_at_target, "precision_without": b.precision_at_target,
-                     "diff": b.precision_at_target - a.precision_at_target, "ci_low": lo, "ci_high": hi, "interval_excludes_zero": bool(lo > 0 or hi < 0),
-                     "recall_with": a.recall_ge5, "recall_without": b.recall_ge5})
+        rows.append(
+            {
+                "base": base,
+                "repeat": seed,
+                "precision_with_dAdB": a.precision_at_target,
+                "precision_without": b.precision_at_target,
+                "diff": b.precision_at_target - a.precision_at_target,
+                "ci_low": lo,
+                "ci_high": hi,
+                "interval_excludes_zero": bool(lo > 0 or hi < 0),
+                "recall_with": a.recall_ge5,
+                "recall_without": b.recall_ge5,
+            }
+        )
 out = pd.DataFrame(rows)
 out.round(4).to_csv("reports/tables/collinear_logreg.csv", index=False)
 print(out.round(4).to_string(index=False))

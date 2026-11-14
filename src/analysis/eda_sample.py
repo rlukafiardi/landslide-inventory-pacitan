@@ -4,6 +4,7 @@ Writes data/interim/eda_sample.csv.gz (labels, weights, NDVI and the 10 site fac
 data/interim/eda_emb.npy (float16, 64 dequantized 2018 embedding bands, same row order).
 Negative weight w = (training negatives) / N_NEG, so weighted sums recover population totals. Usage: python -m src.analysis.eda_sample
 """
+
 import numpy as np
 import pandas as pd
 import rasterio
@@ -26,7 +27,9 @@ k = np.sort(rng.choice(len(ni), N_NEG, replace=False))
 ri, cj = np.r_[pi, ni[k]], np.r_[pj, nj[k]]
 y = np.r_[np.ones(len(pi), int), np.zeros(N_NEG, int)]
 w = np.r_[np.ones(len(pi)), np.full(N_NEG, len(ni) / N_NEG)]
-print(f"train positives {len(pi):,}; train negatives {len(ni):,}; sample negatives {N_NEG:,}; negative weight {len(ni) / N_NEG:.1f}")
+print(
+    f"train positives {len(pi):,}; train negatives {len(ni):,}; sample negatives {N_NEG:,}; negative weight {len(ni) / N_NEG:.1f}"
+)
 
 d = pd.DataFrame({"row": ri, "col": cj, "y": y, "w": w, "block": block[ri, cj]})
 with rasterio.open("data/interim/ndvi.tif") as r:

@@ -6,6 +6,7 @@ chip (640 m) of Sentinel-2 true colour before (Aug-Oct 2017) and after (Apr-May 
 change, and returns the HTML card plus the row for the key. page(...) wraps the cards in the self-contained HTML (answers kept in the
 browser, downloadable as CSV). Needs the Earth Engine login (.env).
 """
+
 import base64
 import io
 
@@ -48,8 +49,13 @@ class Chips:
 
         def rgb(key):
             start, end = S2_WINDOWS[key]
-            c = (ee.ImageCollection("COPERNICUS/S2_HARMONIZED").filterBounds(ee.Geometry.Rectangle(AOI_BOUNDS)).filterDate(start, end)
-                 .linkCollection(cs, ["cs_cdf"]).map(lambda i: i.updateMask(i.select("cs_cdf").gte(CS_MIN)).select(["B4", "B3", "B2"])))
+            c = (
+                ee.ImageCollection("COPERNICUS/S2_HARMONIZED")
+                .filterBounds(ee.Geometry.Rectangle(AOI_BOUNDS))
+                .filterDate(start, end)
+                .linkCollection(cs, ["cs_cdf"])
+                .map(lambda i: i.updateMask(i.select("cs_cdf").gte(CS_MIN)).select(["B4", "B3", "B2"]))
+            )
             return c.median().rename([f"{key}_{b}" for b in ("R", "G", "B")])
 
         self.image = ee.Image.cat([rgb("pre"), rgb("postB")]).toFloat()
@@ -61,17 +67,34 @@ class Chips:
         ci, cj = int(ii.mean()), int(jj.mean())
         r0 = int(np.clip(ci - CHIP // 2, 0, H - CHIP))
         c0 = int(np.clip(cj - CHIP // 2, 0, W - CHIP))
-        grid = {"dimensions": {"width": CHIP, "height": CHIP}, "crsCode": "EPSG:32749",
-                "affineTransform": {"scaleX": 10, "shearX": 0, "translateX": tr.c + c0 * 10, "shearY": 0, "scaleY": -10, "translateY": tr.f - r0 * 10}}
+        grid = {
+            "dimensions": {"width": CHIP, "height": CHIP},
+            "crsCode": "EPSG:32749",
+            "affineTransform": {
+                "scaleX": 10,
+                "shearX": 0,
+                "translateX": tr.c + c0 * 10,
+                "shearY": 0,
+                "scaleY": -10,
+                "translateY": tr.f - r0 * 10,
+            },
+        }
         arr = ee.data.computePixels({"expression": self.image, "fileFormat": "NUMPY_NDARRAY", "grid": grid})
         pre = np.dstack([arr[f"pre_{b}"] for b in "RGB"])
         post = np.dstack([arr[f"postB_{b}"] for b in "RGB"])
-        mask = lab[r0:r0 + CHIP, c0:c0 + CHIP] == o
+        mask = lab[r0 : r0 + CHIP, c0 : c0 + CHIP] == o
         fig, ax = plt.subplots(1, 4, figsize=(9.6, 2.6), dpi=90)
-        panels = [("Before (Aug-Oct 2017)", stretch(pre)), ("After (Apr-May 2018)", stretch(post)), ("After, flagged object", stretch(post)), ("NDVI change", None)]
+        panels = [
+            ("Before (Aug-Oct 2017)", stretch(pre)),
+            ("After (Apr-May 2018)", stretch(post)),
+            ("After, flagged object", stretch(post)),
+            ("NDVI change", None),
+        ]
         for a, (t, img) in zip(ax, panels, strict=True):
             if img is None:
-                a.imshow(self.dB[r0:r0 + CHIP, c0:c0 + CHIP], cmap="RdBu", vmin=-0.5, vmax=0.5, interpolation="nearest")
+                a.imshow(
+                    self.dB[r0 : r0 + CHIP, c0 : c0 + CHIP], cmap="RdBu", vmin=-0.5, vmax=0.5, interpolation="nearest"
+                )
             else:
                 a.imshow(np.nan_to_num(img, nan=0.8), interpolation="nearest")
             if t in ("After, flagged object", "NDVI change"):
@@ -100,7 +123,14 @@ class Chips:
 <label><input type="radio" name="a{k}" value="not_scar"> not a scar</label>
 <label><input type="radio" name="a{k}" value="unsure"> unsure</label>
 <input type="text" name="n{k}" placeholder="note (optional)"></div></section>"""
-        return html, {"id": k, "size_px": size, "lat": round(lat, 6), "lon": round(lon, 6), "slope_deg": round(sl, 1), "pmax": round(pmax, 3)}
+        return html, {
+            "id": k,
+            "size_px": size,
+            "lat": round(lat, 6),
+            "lon": round(lon, 6),
+            "slope_deg": round(sl, 1),
+            "pmax": round(pmax, 3),
+        }
 
 
 PAGE = """<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
@@ -140,4 +170,9 @@ document.getElementById('dl').onclick=()=>{let o="id,answer,note\\n";
 
 
 def page(cards, store, filename):
-    return PAGE.replace("__N__", str(len(cards))).replace("__CARDS__", "\n".join(cards)).replace("__STORE__", store).replace("__FILE__", filename)
+    return (
+        PAGE.replace("__N__", str(len(cards)))
+        .replace("__CARDS__", "\n".join(cards))
+        .replace("__STORE__", store)
+        .replace("__FILE__", filename)
+    )

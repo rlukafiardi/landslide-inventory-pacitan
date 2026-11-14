@@ -2,6 +2,7 @@
 the same table, three ways of grouping pixels into folds. Weighted average precision (negatives carry their sampling weight)
 approximates precision-recall at true prevalence. Usage: python -m src.modeling.leak_check
 """
+
 import json
 
 import numpy as np
@@ -21,11 +22,15 @@ sub["w"] = np.where(sub.y == 1, 1.0, sub.w * 4)  # 4x fewer negatives than the t
 sub = apply_fills(sub, fills)
 y = sub.y.to_numpy() == 1
 cat = ["geologi", "landuse"]
-sets = {"all 95 numeric features": [n for n in NAMES if n not in cat],
-        "dNDVI + terrain (no embedding)": [n for n in GROUPS["ndvi_pixel"] + GROUPS["ndvi_nbr"] + GROUPS["terrain"]]}
-groupings = {"random pixels": rng.permutation(len(sub)),
-             "3 km blocks": sub.block.to_numpy(),
-             "6 km blocks": (sub.row // 600).to_numpy() * 1000 + (sub.col // 600).to_numpy()}
+sets = {
+    "all 95 numeric features": [n for n in NAMES if n not in cat],
+    "dNDVI + terrain (no embedding)": [n for n in GROUPS["ndvi_pixel"] + GROUPS["ndvi_nbr"] + GROUPS["terrain"]],
+}
+groupings = {
+    "random pixels": rng.permutation(len(sub)),
+    "3 km blocks": sub.block.to_numpy(),
+    "6 km blocks": (sub.row // 600).to_numpy() * 1000 + (sub.col // 600).to_numpy(),
+}
 rows = []
 for sname, cols in sets.items():
     for gname, g in groupings.items():
@@ -36,5 +41,7 @@ out.to_csv("reports/tables/leak_check.csv", index=False)
 print(out.round(3).to_string(index=False))
 for sname in sets:
     s = out[out.features == sname].set_index("folds")
-    print(f"{sname}: random folds flatter weighted AP by {s.loc['random pixels', 'weighted_AP'] - s.loc['3 km blocks', 'weighted_AP']:+.3f} "
-          f"(AUC {s.loc['random pixels', 'AUC'] - s.loc['3 km blocks', 'AUC']:+.3f}) against 3 km blocks")
+    print(
+        f"{sname}: random folds flatter weighted AP by {s.loc['random pixels', 'weighted_AP'] - s.loc['3 km blocks', 'weighted_AP']:+.3f} "
+        f"(AUC {s.loc['random pixels', 'AUC'] - s.loc['3 km blocks', 'AUC']:+.3f}) against 3 km blocks"
+    )

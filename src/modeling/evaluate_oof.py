@@ -6,6 +6,7 @@ precision with recall (polygons >= 5 px) >= target. Intervals: the same block re
 paired. Writes reports/tables/modeling_results.csv and modeling_pairs.csv.
 Usage: python -m src.modeling.evaluate_oof [name ...]   (default: every raster found in data/interim/oof)
 """
+
 import re
 import sys
 from datetime import date
@@ -138,11 +139,23 @@ def main(names):
         full = cnt.sum(2)
         for tg in TARGETS:
             p, reached, ti, ai = op_point(full, tg)
-            row = {"config": model, "repeat": -1 if rep is None else int(rep), "recall_target": tg, "precision_at_target": float(p) if reached else np.nan,
-                   "reached": bool(reached), "weighted_pixel_AP": ap, "date": date.today().isoformat()}
+            row = {
+                "config": model,
+                "repeat": -1 if rep is None else int(rep),
+                "recall_target": tg,
+                "precision_at_target": float(p) if reached else np.nan,
+                "reached": bool(reached),
+                "weighted_pixel_AP": ap,
+                "date": date.today().isoformat(),
+            }
             if reached:
-                row.update(flagged_share=SHARES[int(ti)], a_min=A_MINS[int(ai)], thr=float(thr[int(ti)]),
-                           recall_ge5=float(full[ti, ai, 0] / full[ti, ai, 6]), objects=int(full[ti, ai, 1]))
+                row.update(
+                    flagged_share=SHARES[int(ti)],
+                    a_min=A_MINS[int(ai)],
+                    thr=float(thr[int(ti)]),
+                    recall_ge5=float(full[ti, ai, 0] / full[ti, ai, 6]),
+                    objects=int(full[ti, ai, 1]),
+                )
                 for ci, c in enumerate(CLS):
                     row[f"recall_{c}"] = float(full[ti, ai, 3 + ci] / max((cls_id == ci).sum(), 1))
             rows.append(row)
@@ -152,7 +165,13 @@ def main(names):
             np.save(OOF / f"boot_{name}_{tg}.npy", boot[tg])
     res = pd.DataFrame(rows)
     res.to_csv(RAW_OUT, index=False)
-    print(res[res.recall_target == 0.8][["config", "repeat", "precision_at_target", "reached", "flagged_share", "recall_ge5", "weighted_pixel_AP"]].round(3).to_string(index=False))
+    print(
+        res[res.recall_target == 0.8][
+            ["config", "repeat", "precision_at_target", "reached", "flagged_share", "recall_ge5", "weighted_pixel_AP"]
+        ]
+        .round(3)
+        .to_string(index=False)
+    )
 
 
 if __name__ == "__main__":
@@ -160,6 +179,6 @@ if __name__ == "__main__":
     if "--out" in args:
         i = args.index("--out")
         RAW_OUT = args[i + 1]
-        args = args[:i] + args[i + 2:]
+        args = args[:i] + args[i + 2 :]
     names = args or sorted(p.stem for p in OOF.glob("*.npy") if not p.stem.startswith(("boot_", "counts_", "abl_")))
     main(names)

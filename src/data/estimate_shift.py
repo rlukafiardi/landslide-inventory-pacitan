@@ -5,6 +5,7 @@ Sentinel-2 vegetation loss (-dNDVI, Apr-May 2018 minus pre-event) is computed ag
 pixels. The sub-pixel peak comes from a 2D quadratic fit around the maximum. Reported for all polygons and for four
 halves of the regency (N, S, E, W) to check that a single rigid shift is justified. Usage: python -m src.data.estimate_shift
 """
+
 import numpy as np
 import rasterio
 
@@ -40,7 +41,7 @@ def peak(s):
     """Sub-pixel (row, col) shift in pixels of the best sampling offset; negative row = north."""
     i, j = np.unravel_index(np.nanargmax(s), s.shape)
     i, j = min(max(i, 1), 2 * R - 1), min(max(j, 1), 2 * R - 1)
-    sub = s[i - 1:i + 2, j - 1:j + 2]
+    sub = s[i - 1 : i + 2, j - 1 : j + 2]
     y, x = np.mgrid[-1:2, -1:2]
     A = np.c_[np.ones(9), x.ravel(), y.ravel(), x.ravel() ** 2, y.ravel() ** 2, (x * y).ravel()]
     c = np.linalg.lstsq(A, sub.ravel(), rcond=None)[0]
@@ -50,13 +51,27 @@ def peak(s):
 
 
 s_all = surface(np.ones(len(pi), bool))
-print("AUC at offset (0,0):", round(s_all[R, R], 3), "| best integer offset:",
-      tuple(int(v) - R for v in np.unravel_index(np.nanargmax(s_all), s_all.shape)), "AUC", round(np.nanmax(s_all), 3))
+print(
+    "AUC at offset (0,0):",
+    round(s_all[R, R], 3),
+    "| best integer offset:",
+    tuple(int(v) - R for v in np.unravel_index(np.nanargmax(s_all), s_all.shape)),
+    "AUC",
+    round(np.nanmax(s_all), 3),
+)
 dr, dc = peak(s_all)
-print(f"sub-pixel peak: {dr:+.2f} rows, {dc:+.2f} cols  ->  true scar is {-dr * 10:+.1f} m north and {dc * 10:+.1f} m east of the polygon")
+print(
+    f"sub-pixel peak: {dr:+.2f} rows, {dc:+.2f} cols  ->  true scar is {-dr * 10:+.1f} m north and {dc * 10:+.1f} m east of the polygon"
+)
 print("\nstability across the regency (positive pixels split at the median row / col):")
-for name, sel in {"north half": pi < np.median(pi), "south half": pi >= np.median(pi),
-                  "west half": pj < np.median(pj), "east half": pj >= np.median(pj)}.items():
+for name, sel in {
+    "north half": pi < np.median(pi),
+    "south half": pi >= np.median(pi),
+    "west half": pj < np.median(pj),
+    "east half": pj >= np.median(pj),
+}.items():
     s = surface(sel)
     r_, c_ = peak(s)
-    print(f"  {name:<11} AUC(0,0) {s[R, R]:.3f} -> peak {np.nanmax(s):.3f}; shift {-r_ * 10:+.1f} m N, {c_ * 10:+.1f} m E")
+    print(
+        f"  {name:<11} AUC(0,0) {s[R, R]:.3f} -> peak {np.nanmax(s):.3f}; shift {-r_ * 10:+.1f} m N, {c_ * 10:+.1f} m E"
+    )

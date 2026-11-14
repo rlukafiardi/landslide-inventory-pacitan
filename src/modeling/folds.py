@@ -4,6 +4,7 @@ block_folds(seed) -> DataFrame group, fold, pos_px, px.  Repeats use different s
 fold_of(rows, cols, folds, size_px) maps pixels to folds. Usage of the greedy rule: groups sorted by positives (ties shuffled
 by the seed) go to the fold with the fewest positives so far, then the fewest pixels.
 """
+
 import numpy as np
 import pandas as pd
 import rasterio
@@ -25,9 +26,18 @@ def block_folds(seed, size_px=B, n_folds=N_FOLDS):
     rows, cols = np.nonzero(train)
     g = _group_ids(rows, cols, size_px)
     pos = label[rows, cols] == 1
-    tab = pd.DataFrame({"group": g, "pos": pos}).groupby("group").agg(pos_px=("pos", "sum"), px=("pos", "size")).reset_index()
+    tab = (
+        pd.DataFrame({"group": g, "pos": pos})
+        .groupby("group")
+        .agg(pos_px=("pos", "sum"), px=("pos", "size"))
+        .reset_index()
+    )
     rng = np.random.default_rng(seed)
-    tab = tab.iloc[rng.permutation(len(tab))].sort_values(["pos_px", "px"], ascending=False, kind="stable").reset_index(drop=True)
+    tab = (
+        tab.iloc[rng.permutation(len(tab))]
+        .sort_values(["pos_px", "px"], ascending=False, kind="stable")
+        .reset_index(drop=True)
+    )
     load_pos, load_px = np.zeros(n_folds), np.zeros(n_folds)
     fold = np.empty(len(tab), int)
     for i, r in tab.iterrows():

@@ -9,6 +9,7 @@ fixed (so only (threshold, a_min) are searched, as for the baseline) and compare
 evaluate_oof (same resamples, so paired). Choosing the rule from 12 candidates on the same data is optimistic; the interval does not cover that selection.
 Usage: python -m src.modeling.size_prior <seed> [seed ...]   (counts)   |   python -m src.modeling.size_prior --analyse
 """
+
 import sys
 
 import numpy as np
@@ -80,23 +81,42 @@ def analyse():
     per_rule = np.array(rows)  # (seeds, rules)
     print("precision at 80% recall per repeat (OOF), rows = rule (S, P):")
     for r, (sz, p) in enumerate(RULES):
-        print(f"  S={sz:2d} P={p:.2f}: " + " ".join(f"{x:.3f}" for x in per_rule[:, r]) + f"   mean {np.nanmean(per_rule[:, r]):.3f}")
+        print(
+            f"  S={sz:2d} P={p:.2f}: "
+            + " ".join(f"{x:.3f}" for x in per_rule[:, r])
+            + f"   mean {np.nanmean(per_rule[:, r]):.3f}"
+        )
     fixed = max(range(1, len(RULES)), key=lambda r: np.nanmean(per_rule[:, r]))
-    print(f"\nbest fixed rule by mean over repeats: S={RULES[fixed][0]}, P={RULES[fixed][1]} (wins per repeat: {[RULES[w] for w in win]})")
+    print(
+        f"\nbest fixed rule by mean over repeats: S={RULES[fixed][0]}, P={RULES[fixed][1]} (wins per repeat: {[RULES[w] for w in win]})"
+    )
     d_rep = per_rule[:, fixed] - per_rule[:, 0]
     wins = int((d_rep > 0).sum())
     tot_b = (W @ ev.n_poly_big.astype(float))[:, None, None, None]  # polygons >= 5 px in each resample
     boot = []
     for s_ in seeds:
-        cb = np.einsum("bn,ntrak->brtak", W, tabs[s_].transpose(3, 0, 1, 2, 4)[:, :, [0, fixed]].astype("float64"))  # (resample, rule, T, A, 3)
+        cb = np.einsum(
+            "bn,ntrak->brtak", W, tabs[s_].transpose(3, 0, 1, 2, 4)[:, :, [0, fixed]].astype("float64")
+        )  # (resample, rule, T, A, 3)
         boot.append(best(cb, tot_b))  # (resample, 2): baseline, fixed rule
     boot = np.array(boot)  # (seeds, resamples, 2)
     diff = (boot[:, :, 1] - boot[:, :, 0]).mean(0)
     lo, hi = np.nanpercentile(diff, [2.5, 97.5])
-    print(f"\nfixed rule minus baseline: mean over repeats {d_rep.mean():+.4f} (per repeat {np.round(d_rep, 4).tolist()}), repeats won {wins}/{len(seeds)}, "
-          f"bootstrap 95% interval of the 5-repeat mean difference [{lo:+.4f}, {hi:+.4f}]")
-    print("rule of docs/validation-design.md: interval excludes 0 and wins >= 4 of 5 repeats ->", "PASS" if (lo > 0 and wins >= 4) else "NOT met")
-    pd.DataFrame({"rule_S": [r[0] for r in RULES], "rule_P": [r[1] for r in RULES], **{f"repeat{s}": per_rule[i] for i, s in enumerate(seeds)}}).to_csv("reports/tables/size_prior_results.csv", index=False)
+    print(
+        f"\nfixed rule minus baseline: mean over repeats {d_rep.mean():+.4f} (per repeat {np.round(d_rep, 4).tolist()}), repeats won {wins}/{len(seeds)}, "
+        f"bootstrap 95% interval of the 5-repeat mean difference [{lo:+.4f}, {hi:+.4f}]"
+    )
+    print(
+        "rule of docs/validation-design.md: interval excludes 0 and wins >= 4 of 5 repeats ->",
+        "PASS" if (lo > 0 and wins >= 4) else "NOT met",
+    )
+    pd.DataFrame(
+        {
+            "rule_S": [r[0] for r in RULES],
+            "rule_P": [r[1] for r in RULES],
+            **{f"repeat{s}": per_rule[i] for i, s in enumerate(seeds)},
+        }
+    ).to_csv("reports/tables/size_prior_results.csv", index=False)
 
 
 if __name__ == "__main__":

@@ -16,6 +16,7 @@ Criteria (fixed before the first run), each required for BOTH models:
   Continue with embeddings: S0 and (S1 or S2). Otherwise drop them for this task.
 Usage: python -m src.supervised_check <features_csv>
 """
+
 import sys
 
 import geopandas as gpd
@@ -26,8 +27,7 @@ from src.cv_utils import MODELS, SEED, block_boot, blocks, oof, pooled_auc
 from src.embedding_utils import BANDS, auc
 
 d = pd.read_csv(sys.argv[1], index_col="pid")
-d = d.assign(dA=d.postA - d.pre, dB=d.postB - d.pre,
-             **{f"x_{b}": d[f"e18_{b}"] - d[f"e17_{b}"] for b in BANDS})
+d = d.assign(dA=d.postA - d.pre, dB=d.postB - d.pre, **{f"x_{b}": d[f"e18_{b}"] - d[f"e17_{b}"] for b in BANDS})
 E17 = [c for c in d.columns if c.startswith("e17_")]
 E18 = [c for c in d.columns if c.startswith("e18_")]
 NDVI = ["pre", "postA", "postB", "dA", "dB"]
@@ -50,9 +50,17 @@ for model in MODELS:
     print("  by polygon size class        " + "   ".join(f"{k:>5}" for k in ("A", "B", "C")))
     for lab, lo, hi in [("<5 px (<500 m2)", 0, 500), ("5-20 px", 500, 2000), (">20 px (>2000 m2)", 2000, 1e12)]:
         m = ~y | ((area >= lo) & (area < hi))
-        print(f"    {lab:<22} n={int((m & y).sum()):<4} " + "   ".join(f"{pooled_auc(P[k][m], y[m]):.3f}" for k in ("A", "B", "C")))
+        print(
+            f"    {lab:<22} n={int((m & y).sum()):<4} "
+            + "   ".join(f"{pooled_auc(P[k][m], y[m]):.3f}" for k in ("A", "B", "C"))
+        )
     ci1 = block_boot(P, g3, y, lambda p, yy: auc(p["A"][yy], p["A"][~yy]) - auc(p["B"][yy], p["B"][~yy]))
-    ci2 = block_boot(P, g3, y, lambda p, yy: auc(p["C"][yy], p["C"][~yy]) - max(auc(p["A"][yy], p["A"][~yy]), auc(p["B"][yy], p["B"][~yy])))
+    ci2 = block_boot(
+        P,
+        g3,
+        y,
+        lambda p, yy: auc(p["C"][yy], p["C"][~yy]) - max(auc(p["A"][yy], p["A"][~yy]), auc(p["B"][yy], p["B"][~yy])),
+    )
     d1 = pooled_auc(P["A"], y) - pooled_auc(P["B"], y)
     d2 = pooled_auc(P["C"], y) - max(pooled_auc(P["A"], y), pooled_auc(P["B"], y))
     print(f"  S1 A - B: {d1:+.3f}, CI [{ci1[0]:+.3f}, {ci1[1]:+.3f}]")
@@ -77,5 +85,7 @@ for name, cols in CONTROLS.items():
 s0 = all(v[0] for v in verdict.values())
 s1 = all(v[1] for v in verdict.values())
 s2 = all(v[2] for v in verdict.values())
-print(f"\nS0 {'PASS' if s0 else 'FAIL'} | S1 {'PASS' if s1 else 'FAIL'} | S2 {'PASS' if s2 else 'FAIL'} | "
-      f"continue with embeddings: {'YES' if s0 and (s1 or s2) else 'NO'}")
+print(
+    f"\nS0 {'PASS' if s0 else 'FAIL'} | S1 {'PASS' if s1 else 'FAIL'} | S2 {'PASS' if s2 else 'FAIL'} | "
+    f"continue with embeddings: {'YES' if s0 and (s1 or s2) else 'NO'}"
+)

@@ -8,6 +8,7 @@ CLI: python -m src.features.build   -> data/interim/features_train.parquet (trai
 N_NEG uniformly drawn negative pixels), data/interim/fill_values.json (medians from that table), and
 reports/tables/feature_catalogue.csv. Missing values stay NaN in the table; apply_fills() fills them for linear models.
 """
+
 import json
 import time
 from pathlib import Path
@@ -69,7 +70,10 @@ def feature_window(row0, col0, h, w):
         out[name] = a
     asp, nd = _read(f"{FDIR}/map_aspect.tif", centre, bands=1)
     flat = (asp == nd) | (asp < 0)
-    out["asp_sin"], out["asp_cos"] = np.where(flat, 0, np.sin(np.deg2rad(asp))), np.where(flat, 0, np.cos(np.deg2rad(asp)))
+    out["asp_sin"], out["asp_cos"] = (
+        np.where(flat, 0, np.sin(np.deg2rad(asp))),
+        np.where(flat, 0, np.cos(np.deg2rad(asp))),
+    )
     out["postA_missing"] = np.isnan(out["postA"]).astype("float32")
     out["twi_missing"] = np.isnan(out["twi"]).astype("float32")
     emb, _ = _read(f"{INTERIM}/emb2018.tif", centre)
@@ -127,9 +131,14 @@ def main():
     json.dump(fills, open(f"{INTERIM}/fill_values.json", "w"), indent=1)
     Path("reports/tables").mkdir(parents=True, exist_ok=True)
     catalogue().to_csv("reports/tables/feature_catalogue.csv", index=False)
-    print(f"table {len(table):,} rows x {len(NAMES)} features (positives {int(table.y.sum()):,}, negatives {int((table.y == 0).sum()):,}, "
-          f"negative weight {table.w.iloc[-1]:.1f}); built in {time.time() - t0:.0f}s")
-    print("columns with missing values (rows), filled from training medians when a model needs it:", {c: int(v) for c, v in miss[miss > 0].items()})
+    print(
+        f"table {len(table):,} rows x {len(NAMES)} features (positives {int(table.y.sum()):,}, negatives {int((table.y == 0).sum()):,}, "
+        f"negative weight {table.w.iloc[-1]:.1f}); built in {time.time() - t0:.0f}s"
+    )
+    print(
+        "columns with missing values (rows), filled from training medians when a model needs it:",
+        {c: int(v) for c, v in miss[miss > 0].items()},
+    )
 
 
 if __name__ == "__main__":

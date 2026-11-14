@@ -8,6 +8,7 @@ Evaluate with: python -m src.modeling.evaluate_oof --out reports/tables/ablation
 then python -m src.modeling.ablation_report <seed>.
 Usage: python -m src.modeling.ablate <seed> [variant ...]   (default: the six "no_*" variants)
 """
+
 import sys
 import time
 from pathlib import Path
@@ -63,13 +64,16 @@ if __name__ == "__main__":
     H, W = train.shape
     lut = np.full(14000, -1)
     lut[folds.group.to_numpy()] = folds.fold.to_numpy()
-    rasters = {v: np.lib.format.open_memmap(OUT / f"abl_{v}_r{seed}.npy", mode="w+", dtype="float32", shape=(H, W)) for v in chosen}
+    rasters = {
+        v: np.lib.format.open_memmap(OUT / f"abl_{v}_r{seed}.npy", mode="w+", dtype="float32", shape=(H, W))
+        for v in chosen
+    }
     for r in rasters.values():
         r[:] = np.nan
     for r0 in range(0, H, TILE):
         for c0 in range(0, W, TILE):
             h, w = min(TILE, H - r0), min(TILE, W - c0)
-            m = train[r0:r0 + h, c0:c0 + w]
+            m = train[r0 : r0 + h, c0 : c0 + w]
             if not m.any():
                 continue
             feats = feature_window(r0, c0, h, w)

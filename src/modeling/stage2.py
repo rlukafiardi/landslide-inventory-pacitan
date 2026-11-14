@@ -10,6 +10,7 @@ Evaluation reuses evaluate_oof's metric code and bootstrap resamples, so differe
 used, keeping every candidate must reproduce the stage-1 counts of the same threshold exactly (asserted).
 Usage: python -m src.modeling.stage2 <seed>   -> reports/tables/stage2_results.csv (rows for this seed are replaced)
 """
+
 import sys
 import time
 from pathlib import Path
@@ -34,10 +35,43 @@ FACTORS = ("slope", "elev", "distriv", "distroad", "twi", "spi", "landuse", "geo
 LOG1P = ("distriv", "distroad")
 CAT = ["landuse", "geologi"]
 PROBSTATS = ["pmax", "pmean", "size"]
-BASE = PROBSTATS + ["elongation", "extent", "bbox_h", "bbox_w", "dB_mean", "dB_min", "dB_lt20", "postB_mean", "pre_mean", "dBenv", "dB_contrast",
-                    "dBmin5", "dens", "penv", "slope_mean", "slope_std", "elev_mean", "distriv_min", "distroad_min", "twi_mean", "spi_mean"] + CAT
+BASE = (
+    PROBSTATS
+    + [
+        "elongation",
+        "extent",
+        "bbox_h",
+        "bbox_w",
+        "dB_mean",
+        "dB_min",
+        "dB_lt20",
+        "postB_mean",
+        "pre_mean",
+        "dBenv",
+        "dB_contrast",
+        "dBmin5",
+        "dens",
+        "penv",
+        "slope_mean",
+        "slope_std",
+        "elev_mean",
+        "distriv_min",
+        "distroad_min",
+        "twi_mean",
+        "spi_mean",
+    ]
+    + CAT
+)
 EMB = [f"e{i:02d}" for i in range(64)]
-PARAMS = dict(max_depth=3, learning_rate=0.05, max_iter=300, min_samples_leaf=40, l2_regularization=1.0, early_stopping=False, random_state=SEED)
+PARAMS = dict(
+    max_depth=3,
+    learning_rate=0.05,
+    max_iter=300,
+    min_samples_leaf=40,
+    l2_regularization=1.0,
+    early_stopping=False,
+    random_state=SEED,
+)
 
 
 def read1(path):
@@ -67,7 +101,10 @@ def build_objects(seed):
     uniq, start = np.unique(labs, return_index=True)
     oi = np.searchsorted(uniq, labs)
     rows, cols = idx // W, idx % W
-    print(f"stage 1 threshold {thr1:.4f}: {len(uniq):,} candidate objects, {len(idx):,} pixels ({time.time() - t0:.0f}s)", flush=True)
+    print(
+        f"stage 1 threshold {thr1:.4f}: {len(uniq):,} candidate objects, {len(idx):,} pixels ({time.time() - t0:.0f}s)",
+        flush=True,
+    )
 
     tp_lab = np.zeros(n + 1, bool)
     tp_lab[np.unique(labs[(ev.poly_flat[idx] > 0) | ev.ring_flat[idx]])] = True
@@ -76,7 +113,14 @@ def build_objects(seed):
     pairs = np.unique(np.stack([oi[m], ev.poly_to_row[pid[m]]], axis=1), axis=0)
     pairs = pairs[pairs[:, 1] >= 0]
     first = idx[start]
-    obj = pd.DataFrame({"size": np.diff(np.r_[start, len(idx)]), "tp": tp_lab[uniq], "bi": ev.bi_of_flat[first], "block": (first // W // B) * 1000 + (first % W) // B})
+    obj = pd.DataFrame(
+        {
+            "size": np.diff(np.r_[start, len(idx)]),
+            "tp": tp_lab[uniq],
+            "bi": ev.bi_of_flat[first],
+            "block": (first // W // B) * 1000 + (first % W) // B,
+        }
+    )
 
     with rasterio.open(f"{INTERIM}/ndvi.tif") as r:
         nd = r.read().astype("float32")
@@ -86,9 +130,16 @@ def build_objects(seed):
     dBf = np.where(np.isnan(dB), NBR_FILL["dB"], dB)
     cm = np.zeros((H, W), "float32")
     cm.ravel()[idx] = 1
-    px = {"p": prob.ravel()[idx], "dB": dB.ravel()[idx], "postB": post_b.ravel()[idx], "pre": pre.ravel()[idx],
-          "dBenv": ndi.uniform_filter(dBf, 21, mode="nearest").ravel()[idx], "dBmin5": ndi.minimum_filter(dBf, 5, mode="nearest").ravel()[idx],
-          "dens": ndi.uniform_filter(cm, 51, mode="constant").ravel()[idx], "penv": ndi.uniform_filter(np.nan_to_num(prob, nan=0.0), 51, mode="constant").ravel()[idx]}
+    px = {
+        "p": prob.ravel()[idx],
+        "dB": dB.ravel()[idx],
+        "postB": post_b.ravel()[idx],
+        "pre": pre.ravel()[idx],
+        "dBenv": ndi.uniform_filter(dBf, 21, mode="nearest").ravel()[idx],
+        "dBmin5": ndi.minimum_filter(dBf, 5, mode="nearest").ravel()[idx],
+        "dens": ndi.uniform_filter(cm, 51, mode="constant").ravel()[idx],
+        "penv": ndi.uniform_filter(np.nan_to_num(prob, nan=0.0), 51, mode="constant").ravel()[idx],
+    }
     del nd, dB, dBf, cm
     for name in FACTORS:
         a = read1(f"{FDIR}/map_{name}.tif")
@@ -100,16 +151,42 @@ def build_objects(seed):
     df["o"] = oi
     df["dB_lt20"] = (df.dB < -0.2).astype("float32")
     df["r"], df["c"] = rows.astype("float64"), cols.astype("float64")
-    df["rr"], df["cc"], df["rc"] = df.r ** 2, df.c ** 2, df.r * df.c
+    df["rr"], df["cc"], df["rc"] = df.r**2, df.c**2, df.r * df.c
     g = df.groupby("o")
-    a = g.agg(pmax=("p", "max"), pmean=("p", "mean"), dB_mean=("dB", "mean"), dB_min=("dB", "min"), dB_lt20=("dB_lt20", "mean"), postB_mean=("postB", "mean"),
-              pre_mean=("pre", "mean"), dBenv=("dBenv", "mean"), dBmin5=("dBmin5", "min"), dens=("dens", "mean"), penv=("penv", "mean"),
-              slope_mean=("slope", "mean"), slope_std=("slope", "std"), elev_mean=("elev", "mean"), distriv_min=("distriv", "min"),
-              distroad_min=("distroad", "min"), twi_mean=("twi", "mean"), spi_mean=("spi", "mean"), r=("r", "mean"), c=("c", "mean"), rr=("rr", "mean"),
-              cc=("cc", "mean"), rc=("rc", "mean"), rmin=("r", "min"), rmax=("r", "max"), cmin=("c", "min"), cmax=("c", "max"))
-    vr, vc, cv = a.rr - a.r ** 2, a.cc - a.c ** 2, a.rc - a.r * a.c
-    half, rad = (vr + vc) / 2, np.sqrt(((vr - vc) / 2) ** 2 + cv ** 2)
-    a["elongation"] = np.sqrt((half + rad + 1 / 12) / np.maximum(half - rad + 1 / 12, 1e-6))  # 1/12: variance of one pixel
+    a = g.agg(
+        pmax=("p", "max"),
+        pmean=("p", "mean"),
+        dB_mean=("dB", "mean"),
+        dB_min=("dB", "min"),
+        dB_lt20=("dB_lt20", "mean"),
+        postB_mean=("postB", "mean"),
+        pre_mean=("pre", "mean"),
+        dBenv=("dBenv", "mean"),
+        dBmin5=("dBmin5", "min"),
+        dens=("dens", "mean"),
+        penv=("penv", "mean"),
+        slope_mean=("slope", "mean"),
+        slope_std=("slope", "std"),
+        elev_mean=("elev", "mean"),
+        distriv_min=("distriv", "min"),
+        distroad_min=("distroad", "min"),
+        twi_mean=("twi", "mean"),
+        spi_mean=("spi", "mean"),
+        r=("r", "mean"),
+        c=("c", "mean"),
+        rr=("rr", "mean"),
+        cc=("cc", "mean"),
+        rc=("rc", "mean"),
+        rmin=("r", "min"),
+        rmax=("r", "max"),
+        cmin=("c", "min"),
+        cmax=("c", "max"),
+    )
+    vr, vc, cv = a.rr - a.r**2, a.cc - a.c**2, a.rc - a.r * a.c
+    half, rad = (vr + vc) / 2, np.sqrt(((vr - vc) / 2) ** 2 + cv**2)
+    a["elongation"] = np.sqrt(
+        (half + rad + 1 / 12) / np.maximum(half - rad + 1 / 12, 1e-6)
+    )  # 1/12: variance of one pixel
     a["bbox_h"], a["bbox_w"] = a.rmax - a.rmin + 1, a.cmax - a.cmin + 1
     a["dB_contrast"] = a.dB_mean - a.dBenv
     obj = pd.concat([obj.reset_index(drop=True), a.reset_index(drop=True)], axis=1)
@@ -184,7 +261,9 @@ if __name__ == "__main__":
     print(f"check passed: all candidates reproduce the stage-1 counts at share {SHARE1}, gates {GATES}", flush=True)
 
     rng = np.random.default_rng(ev.SEED)
-    Wb = rng.multinomial(ev.NB, np.full(ev.NB, 1 / ev.NB), size=ev.N_BOOT).astype("float64")  # the resamples evaluate_oof used
+    Wb = rng.multinomial(ev.NB, np.full(ev.NB, 1 / ev.NB), size=ev.N_BOOT).astype(
+        "float64"
+    )  # the resamples evaluate_oof used
     p_s1 = float(ev.op_point(ev.with_totals(np.load(OOF / f"counts_c_hgb_r{seed}.npz")["cnt"]).sum(2), 0.8)[0])
     boots = {"stage1": np.load(OOF / f"boot_c_hgb_r{seed}_0.8.npy")}
     p_ref = {"stage1": p_s1}
@@ -200,13 +279,24 @@ if __name__ == "__main__":
         full = cnt.sum(2)
         for tg in ev.TARGETS:
             p, reached, ti, ai = ev.op_point(full, tg)
-            row = {"variant": name, "repeat": seed, "recall_target": tg, "precision": float(p) if reached else np.nan, "reached": bool(reached)}
+            row = {
+                "variant": name,
+                "repeat": seed,
+                "recall_target": tg,
+                "precision": float(p) if reached else np.nan,
+                "reached": bool(reached),
+            }
             if reached:
                 ti, ai = int(ti), int(ai)
                 kept = (score >= thr[ti]) & (size >= GATES[ai])
-                row.update(gate=GATES[ai], objects=int(full[ti, ai, 1]), true_objects=int(full[ti, ai, 2]),
-                           flagged_share=float(size[kept].sum() / ev.train.sum()), recall_ge5=float(full[ti, ai, 0] / full[ti, ai, 6]),
-                           **{f"recall_{c}": float(full[ti, ai, 3 + i] / ncls[i]) for i, c in enumerate(ev.CLS)})
+                row.update(
+                    gate=GATES[ai],
+                    objects=int(full[ti, ai, 1]),
+                    true_objects=int(full[ti, ai, 2]),
+                    flagged_share=float(size[kept].sum() / ev.train.sum()),
+                    recall_ge5=float(full[ti, ai, 0] / full[ti, ai, 6]),
+                    **{f"recall_{c}": float(full[ti, ai, 3 + i] / ncls[i]) for i, c in enumerate(ev.CLS)},
+                )
             if tg == 0.8:
                 boots[name] = ev.op_point(np.einsum("bn,tank->btak", Wb, cnt), tg)[0]
                 np.save(OOF / f"boot_s2_{name}_r{seed}_0.8.npy", boots[name])
@@ -217,12 +307,21 @@ if __name__ == "__main__":
                     d = boots[name] - boots[ref]
                     d = d[~np.isnan(d)]
                     lo, hi = np.percentile(d, [2.5, 97.5]) if len(d) else (np.nan, np.nan)
-                    row.update({f"diff_vs_{ref}": row["precision"] - p_ref[ref], f"ci_low_vs_{ref}": lo, f"ci_high_vs_{ref}": hi})
+                    row.update(
+                        {
+                            f"diff_vs_{ref}": row["precision"] - p_ref[ref],
+                            f"ci_low_vs_{ref}": lo,
+                            f"ci_high_vs_{ref}": hi,
+                        }
+                    )
             rows.append(row)
         r8 = rows[-2]
-        print(f"{name:13s} precision at 80% recall {r8['precision']:.3f}  vs stage 1 {r8['diff_vs_stage1']:+.3f} ({r8['ci_low_vs_stage1']:+.3f} to {r8['ci_high_vs_stage1']:+.3f})"
-              f"  vs obj_pmax {r8['diff_vs_obj_pmax']:+.3f} ({r8['ci_low_vs_obj_pmax']:+.3f} to {r8['ci_high_vs_obj_pmax']:+.3f})"
-              f"  flagged {r8.get('flagged_share', np.nan):.4f}, objects {r8.get('objects', 0):,}", flush=True)
+        print(
+            f"{name:13s} precision at 80% recall {r8['precision']:.3f}  vs stage 1 {r8['diff_vs_stage1']:+.3f} ({r8['ci_low_vs_stage1']:+.3f} to {r8['ci_high_vs_stage1']:+.3f})"
+            f"  vs obj_pmax {r8['diff_vs_obj_pmax']:+.3f} ({r8['ci_low_vs_obj_pmax']:+.3f} to {r8['ci_high_vs_obj_pmax']:+.3f})"
+            f"  flagged {r8.get('flagged_share', np.nan):.4f}, objects {r8.get('objects', 0):,}",
+            flush=True,
+        )
     out = pd.DataFrame(rows)
     path = Path("reports/tables/stage2_results.csv")
     if path.exists():

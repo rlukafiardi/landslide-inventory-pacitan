@@ -10,6 +10,7 @@ Pass criteria (fixed before the first run):
 Score for dNDVI is -(post - pre): larger = more vegetation loss. Cloud mask: Cloud Score+ cs_cdf >= 0.6.
 Usage: python -m src.s2_dndvi_check <matched_points_csv>
 """
+
 import sys
 
 import geopandas as gpd
@@ -53,14 +54,20 @@ for name, (s, e) in POST.items():
     a_emb, a_nd, a_comb = auc(emb[y], emb[~y]), auc(nd[y], nd[~y]), auc(comb[y], comb[~y])
     lo, hi = boot_diff(y, emb, nd)
     print(f"\n=== post window {name} ===")
-    print(f"landslide points with valid pre+post NDVI: {cov:.1%}; points used (both scores): {len(v)} (landslide {y.sum()})")
+    print(
+        f"landslide points with valid pre+post NDVI: {cov:.1%}; points used (both scores): {len(v)} (landslide {y.sum()})"
+    )
     print(f"AUC embedding d1718 {a_emb:.3f} | dNDVI {a_nd:.3f} | rank-average {a_comb:.3f}")
     print(f"AUC difference (emb - dNDVI) {a_emb - a_nd:+.3f}, bootstrap 95% CI [{lo:+.3f}, {hi:+.3f}]")
     print("AUC by polygon size class      embedding   dNDVI")
     for lab, lo_a, hi_a in [("<5 px (<500 m2)", 0, 500), ("5-20 px", 500, 2000), (">20 px (>2000 m2)", 2000, 1e12)]:
         m = ~y | ((v.area >= lo_a) & (v.area < hi_a)).to_numpy()
         yy = y[m]
-        print(f"  {lab:<22} n={int((m & y).sum()):<4} {auc(emb[m][yy], emb[m][~yy]):.3f}       {auc(nd[m][yy], nd[m][~yy]):.3f}")
+        print(
+            f"  {lab:<22} n={int((m & y).sum()):<4} {auc(emb[m][yy], emb[m][~yy]):.3f}       {auc(nd[m][yy], nd[m][~yy]):.3f}"
+        )
     b1, b2, b3 = cov >= 0.8, a_emb > a_nd, a_comb >= max(a_emb, a_nd) + 0.02
-    print(f"B1 coverage >= 80%: {'PASS' if b1 else 'FAIL'} | B2 embedding > dNDVI: {'PASS' if b2 else 'FAIL'} | "
-          f"B3 combined >= max + 0.02: {'PASS' if b3 else 'FAIL'} | continue: {'YES' if b1 and (b2 or b3) else 'NO'}")
+    print(
+        f"B1 coverage >= 80%: {'PASS' if b1 else 'FAIL'} | B2 embedding > dNDVI: {'PASS' if b2 else 'FAIL'} | "
+        f"B3 combined >= max + 0.02: {'PASS' if b3 else 'FAIL'} | continue: {'YES' if b1 and (b2 or b3) else 'NO'}"
+    )

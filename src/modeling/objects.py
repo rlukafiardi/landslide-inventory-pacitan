@@ -8,6 +8,7 @@ score_objects(scene, prob, thr, a_min, eval_mask, polygons) returns
         the polygon and the union of the objects overlapping it), slope, landuse, distriv, pmax
 Definitions follow docs/validation-design.md and src/modeling/metrics.py; check_objects.py proves the two agree on real data.
 """
+
 import numpy as np
 import pandas as pd
 import rasterio
@@ -65,10 +66,20 @@ def score_objects(scene, prob, thr, a_min, eval_mask, polygons):
         sl = boxes[o - 1]
         m = lab[sl] == o
         first = np.argwhere(m)[0]
-        rows.append({"size": int(sizes[o]), "block": int(block[sl][tuple(first)]), "tp": bool(tp_lab[o]),
-                     "slope": float(np.nanmean(scene.slope[sl][m])) if not np.isnan(scene.slope[sl][m]).all() else np.nan,
-                     "landuse": _modal(scene.landuse[sl][m]), "distriv": float(np.nanmin(scene.distriv[sl][m])) if not np.isnan(scene.distriv[sl][m]).all() else np.nan,
-                     "pmax": float(prob[sl][m].max()), "dist_poly_m": float(scene.dist_poly_m[sl][m].min())})
+        rows.append(
+            {
+                "size": int(sizes[o]),
+                "block": int(block[sl][tuple(first)]),
+                "tp": bool(tp_lab[o]),
+                "slope": float(np.nanmean(scene.slope[sl][m])) if not np.isnan(scene.slope[sl][m]).all() else np.nan,
+                "landuse": _modal(scene.landuse[sl][m]),
+                "distriv": float(np.nanmin(scene.distriv[sl][m]))
+                if not np.isnan(scene.distriv[sl][m]).all()
+                else np.nan,
+                "pmax": float(prob[sl][m].max()),
+                "dist_poly_m": float(scene.dist_poly_m[sl][m].min()),
+            }
+        )
     obj = pd.DataFrame(rows)
 
     pred = lab > 0
@@ -87,8 +98,20 @@ def score_objects(scene, prob, thr, a_min, eval_mask, polygons):
             union = int(inside.sum()) + int(sizes[objs].sum()) - inter
             strict = inter / union >= IOU_MIN
         sv = scene.slope[sl][inside]
-        prow.append({"id": p.id, "block": int(p.block), "area_m2": float(p.area_m2), "size_class": p.size_class, "detected": detected, "strict": bool(strict),
-                     "slope": float(np.nanmean(sv)) if not np.isnan(sv).all() else np.nan, "landuse": _modal(scene.landuse[sl][inside]),
-                     "distriv": float(np.nanmin(scene.distriv[sl][inside])) if not np.isnan(scene.distriv[sl][inside]).all() else np.nan,
-                     "pmax": float(np.nanmax(prob[sl][inside])) if not np.isnan(prob[sl][inside]).all() else np.nan})
+        prow.append(
+            {
+                "id": p.id,
+                "block": int(p.block),
+                "area_m2": float(p.area_m2),
+                "size_class": p.size_class,
+                "detected": detected,
+                "strict": bool(strict),
+                "slope": float(np.nanmean(sv)) if not np.isnan(sv).all() else np.nan,
+                "landuse": _modal(scene.landuse[sl][inside]),
+                "distriv": float(np.nanmin(scene.distriv[sl][inside]))
+                if not np.isnan(scene.distriv[sl][inside]).all()
+                else np.nan,
+                "pmax": float(np.nanmax(prob[sl][inside])) if not np.isnan(prob[sl][inside]).all() else np.nan,
+            }
+        )
     return obj, pd.DataFrame(prow), lab

@@ -7,6 +7,7 @@ Tiles (560 px for embeddings, 800 for NDVI) stay under the 48 MiB computePixels 
 mask are requested; finished tiles are listed in <layer>.done.json, so a rerun resumes. Sequential and polite; stops
 on the first quota or permission error. Usage: python -m src.ingestion.download_stack <layer> [--pilot N]
 """
+
 import json
 import os
 import sys
@@ -46,16 +47,31 @@ def image():
 
 path, done_path = f"{OUT}/{layer}.tif", f"{OUT}/{layer}.done.json"
 if not os.path.exists(path):
-    with rasterio.open(path, "w", driver="GTiff", height=H, width=W, count=len(names), dtype=dtype, crs=crs, transform=tr,
-                       nodata=nodata, compress="deflate", tiled=True, blockxsize=256, blockysize=256, BIGTIFF="YES") as dst:
+    with rasterio.open(
+        path,
+        "w",
+        driver="GTiff",
+        height=H,
+        width=W,
+        count=len(names),
+        dtype=dtype,
+        crs=crs,
+        transform=tr,
+        nodata=nodata,
+        compress="deflate",
+        tiled=True,
+        blockxsize=256,
+        blockysize=256,
+        BIGTIFF="YES",
+    ) as dst:
         dst.descriptions = tuple(names)
 done = set(json.load(open(done_path))) if os.path.exists(done_path) else set()
 
-tiles = [(i, j) for i in range(0, H, TILE) for j in range(0, W, TILE) if valid[i:i + TILE, j:j + TILE].any()]
+tiles = [(i, j) for i in range(0, H, TILE) for j in range(0, W, TILE) if valid[i : i + TILE, j : j + TILE].any()]
 todo = [t for t in tiles if f"{t[0]}_{t[1]}" not in done]
 print(f"{layer}: {len(tiles)} tiles touch the domain, {len(done)} done, {len(todo)} to fetch")
 if pilot:
-    todo = todo[len(todo) // 2:][:pilot]
+    todo = todo[len(todo) // 2 :][:pilot]
 
 init_ee()
 img = image()
@@ -63,9 +79,18 @@ t0 = time.time()
 with rasterio.open(path, "r+") as dst:
     for n, (i, j) in enumerate(todo, 1):
         h, w = min(TILE, H - i), min(TILE, W - j)
-        grid = {"dimensions": {"width": w, "height": h}, "crsCode": "EPSG:32749",
-                "affineTransform": {"scaleX": 10, "shearX": 0, "translateX": tr.c + j * 10,
-                                    "shearY": 0, "scaleY": -10, "translateY": tr.f - i * 10}}
+        grid = {
+            "dimensions": {"width": w, "height": h},
+            "crsCode": "EPSG:32749",
+            "affineTransform": {
+                "scaleX": 10,
+                "shearX": 0,
+                "translateX": tr.c + j * 10,
+                "shearY": 0,
+                "scaleY": -10,
+                "translateY": tr.f - i * 10,
+            },
+        }
         try:
             arr = ee.data.computePixels({"expression": img, "fileFormat": "NUMPY_NDARRAY", "grid": grid})
         except ee.EEException as e:

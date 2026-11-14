@@ -9,6 +9,7 @@ With a landuse raster as third argument the match is exact on land-use class fir
 (slope, elevation); that run's M1 also requires every landslide to find a same-class background point.
 Usage: python -m src.matched_background_check <landslide_gpkg> <out_csv> [landuse_tif]
 """
+
 import os
 import sys
 
@@ -29,8 +30,11 @@ POOL_CACHE = "data/processed/pool_terrain.csv"
 ls = gpd.read_file(gpkg).to_crs(32749)
 rng = np.random.default_rng(SEED)
 
-pos = gpd.GeoDataFrame({"pid": [f"ls{i}" for i in range(len(ls))], "grp": "landslide", "area": ls.area.to_numpy()},
-                       geometry=ls.geometry.representative_point(), crs=32749)
+pos = gpd.GeoDataFrame(
+    {"pid": [f"ls{i}" for i in range(len(ls))], "grp": "landslide", "area": ls.area.to_numpy()},
+    geometry=ls.geometry.representative_point(),
+    crs=32749,
+)
 
 keep_out = ls.geometry.buffer(MIN_DIST_M).union_all()
 minx, miny, maxx, maxy = ls.total_bounds
@@ -56,8 +60,10 @@ print(f"terrain: landslide {len(t_pos)}/{len(pos)}, pool {len(t_pool)}/{POOL} (o
 
 if landuse_tif:
     with rasterio.open(landuse_tif) as r:
+
         def lu(gdf):
             return pd.Series([v[0] for v in r.sample([(g.x, g.y) for g in gdf.geometry])], index=gdf.pid)
+
         t_pos["lu"] = lu(pos).loc[t_pos.index]
         t_pool["lu"] = lu(pool).loc[t_pool.index]
         nodata = r.nodata
@@ -99,8 +105,12 @@ neg = pool4326.set_index("pid").loc[picked].reset_index().assign(grp="background
 pts = pd.concat([pos4326, neg[["pid", "grp", "area", "geometry"]]]).pipe(gpd.GeoDataFrame, crs=4326)
 dist = embedding_distances(pts)
 pi = pts.set_index("pid").loc[dist.index]
-meta = pi[["grp", "area"]].assign(lon=pi.geometry.x, lat=pi.geometry.y).join(dist).join(
-    pd.concat([t_pos, matched])[["slope", "elevation"]])
+meta = (
+    pi[["grp", "area"]]
+    .assign(lon=pi.geometry.x, lat=pi.geometry.y)
+    .join(dist)
+    .join(pd.concat([t_pos, matched])[["slope", "elevation"]])
+)
 meta.to_csv(out_csv)
 
 L, B = meta[meta.grp == "landslide"], meta[meta.grp == "background"]
@@ -116,10 +126,15 @@ for name, lo, hi in [("<5 px (<500 m2)", 0, 500), ("5-20 px", 500, 2000), (">20 
     sub = L[(L.area >= lo) & (L.area < hi)]
     print(f"  {name}: n={len(sub)}, AUC={auc(sub['d1718'], B['d1718']):.3f}")
 
-m1 = abs(t_pos.slope.median() - matched.slope.median()) <= 1 and abs(t_pos.elevation.median() - matched.elevation.median()) <= 25
+m1 = (
+    abs(t_pos.slope.median() - matched.slope.median()) <= 1
+    and abs(t_pos.elevation.median() - matched.elevation.median()) <= 25
+)
 m2 = auc(L["d1718"], B["d1718"]) >= 0.70
 ratio = B["d1718"].median() / B["d1819"].median()
 m1 = m1 and len(picked) == len(pos)
-print(f"\nM1 terrain balance within 1 deg / 25 m{' and all landslides matched' if landuse_tif else ''}: {'PASS' if m1 else 'FAIL'}")
+print(
+    f"\nM1 terrain balance within 1 deg / 25 m{' and all landslides matched' if landuse_tif else ''}: {'PASS' if m1 else 'FAIL'}"
+)
 print(f"M2 AUC(2017->2018) >= 0.70: {'PASS' if m2 else 'FAIL'}")
 print(f"M3 matched bg median ratio 17->18 / 18->19 = {ratio:.2f} <= 1.5: {'PASS' if ratio <= 1.5 else 'FAIL'}")

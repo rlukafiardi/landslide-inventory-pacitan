@@ -11,6 +11,7 @@ no guard needed): it checks the pipeline and gives the out-of-fold curve that th
 Writes reports/tables/{test|rehearsal}_results.csv, _curve.csv, _error_analysis_*.csv.
 Usage: python -m src.modeling.evaluate_test --rehearsal   |   LANDSLIDE_FINAL_EVAL=1 python -m src.modeling.evaluate_test
 """
+
 import json
 import sys
 
@@ -47,13 +48,20 @@ def raster(cfg):
 
 def per_block(obj, poly, blocks, domain_px):
     """Counts per block (aligned to `blocks`) that the point estimate and the bootstrap are both built from."""
+
     def agg(s):
         return s.reindex(blocks, fill_value=0).to_numpy(dtype=float)
+
     big = poly[poly.size_class != "<5 px"]
-    cols = {"objects": agg(obj.groupby("block").size()), "true_objects": agg(obj[obj.tp].groupby("block").size()),
-            "flagged_px": agg(obj.groupby("block")["size"].sum()), "domain_px": domain_px,
-            "big": agg(big.groupby("block").size()), "big_det": agg(big[big.detected].groupby("block").size()),
-            "big_strict": agg(big[big.strict].groupby("block").size())}
+    cols = {
+        "objects": agg(obj.groupby("block").size()),
+        "true_objects": agg(obj[obj.tp].groupby("block").size()),
+        "flagged_px": agg(obj.groupby("block")["size"].sum()),
+        "domain_px": domain_px,
+        "big": agg(big.groupby("block").size()),
+        "big_det": agg(big[big.detected].groupby("block").size()),
+        "big_strict": agg(big[big.strict].groupby("block").size()),
+    }
     for c in CLASSES:
         p = poly[poly.size_class == c]
         cols[f"n_{c}"], cols[f"det_{c}"] = agg(p.groupby("block").size()), agg(p[p.detected].groupby("block").size())
@@ -62,9 +70,14 @@ def per_block(obj, poly, blocks, domain_px):
 
 def stats(t):
     """Ratios from summed per-block counts (works on one set of weights or a (B, blocks) weighted matrix via the caller)."""
-    return {"object_recall_ge5": t.big_det / t.big, "strict_recall_ge5": t.big_strict / t.big, "object_precision": t.true_objects / t.objects,
-            "flagged_share": t.flagged_px / t.domain_px, "false_per_true": (t.objects - t.true_objects) / t.true_objects,
-            **{f"recall_{c}": t[f"det_{c}"] / t[f"n_{c}"] for c in CLASSES}}
+    return {
+        "object_recall_ge5": t.big_det / t.big,
+        "strict_recall_ge5": t.big_strict / t.big,
+        "object_precision": t.true_objects / t.objects,
+        "flagged_share": t.flagged_px / t.domain_px,
+        "false_per_true": (t.objects - t.true_objects) / t.true_objects,
+        **{f"recall_{c}": t[f"det_{c}"] / t[f"n_{c}"] for c in CLASSES},
+    }
 
 
 def evaluate(scene, prob, thr, a_min, mask, polygons, blocks, domain_px, W):
@@ -72,8 +85,14 @@ def evaluate(scene, prob, thr, a_min, mask, polygons, blocks, domain_px, W):
     pb = per_block(obj, poly, blocks, domain_px)
     point = stats(pb.sum())
     boot = pd.DataFrame(stats(pd.DataFrame(W @ pb.to_numpy(), columns=pb.columns)))
-    row = {"threshold": float(thr), "a_min": a_min, "objects": int(pb.objects.sum()), "true_objects": int(pb.true_objects.sum()),
-           "polygons_ge5": int(pb.big.sum()), "polygons_all": len(poly)}
+    row = {
+        "threshold": float(thr),
+        "a_min": a_min,
+        "objects": int(pb.objects.sum()),
+        "true_objects": int(pb.true_objects.sum()),
+        "polygons_ge5": int(pb.big.sum()),
+        "polygons_all": len(poly),
+    }
     for k, v in point.items():
         row[k] = float(v)
         row[f"{k}_ci_low"], row[f"{k}_ci_high"] = (float(x) for x in np.nanpercentile(boot[k], [2.5, 97.5]))
@@ -81,13 +100,22 @@ def evaluate(scene, prob, thr, a_min, mask, polygons, blocks, domain_px, W):
 
 
 if __name__ == "__main__":
-    mask = block_mask("train" if REHEARSAL else "test")  # the test side raises PermissionError without LANDSLIDE_FINAL_EVAL=1
+    mask = block_mask(
+        "train" if REHEARSAL else "test"
+    )  # the test side raises PermissionError without LANDSLIDE_FINAL_EVAL=1
     scene = Scene()
     blocks = np.unique(scene.block[mask])
     domain_px = np.bincount(np.searchsorted(blocks, scene.block[mask]), minlength=len(blocks)).astype(float)
     pols = scene.polygons[np.isin(scene.polygons.block, blocks)]
-    print(f"{PREFIX}: {len(blocks)} blocks, {int(mask.sum()):,} pixels, {len(pols)} polygons ({int((pols.size_class != '<5 px').sum())} >= 5 px)", flush=True)
-    W = np.random.default_rng(SEED).multinomial(len(blocks), np.full(len(blocks), 1 / len(blocks)), size=N_BOOT).astype(float)
+    print(
+        f"{PREFIX}: {len(blocks)} blocks, {int(mask.sum()):,} pixels, {len(pols)} polygons ({int((pols.size_class != '<5 px').sum())} >= 5 px)",
+        flush=True,
+    )
+    W = (
+        np.random.default_rng(SEED)
+        .multinomial(len(blocks), np.full(len(blocks), 1 / len(blocks)), size=N_BOOT)
+        .astype(float)
+    )
     rows, keep = [], {}
     for cfg in MODELS:
         thr, a_min = operating_point(cfg)
@@ -95,9 +123,12 @@ if __name__ == "__main__":
         row, obj, poly = evaluate(scene, prob, thr, a_min, mask, pols, blocks, domain_px, W)
         rows.append({"model": cfg, **row})
         keep[cfg] = (obj, poly)
-        print(f"{cfg:14s} thr {thr:.4f} a_min {a_min}: recall(>=5 px) {row['object_recall_ge5']:.3f} ({row['object_recall_ge5_ci_low']:.3f}-{row['object_recall_ge5_ci_high']:.3f}), "
-              f"strict {row['strict_recall_ge5']:.3f}, precision {row['object_precision']:.3f} ({row['object_precision_ci_low']:.3f}-{row['object_precision_ci_high']:.3f}), "
-              f"flagged {row['flagged_share']:.4f}, false per true {row['false_per_true']:.1f}", flush=True)
+        print(
+            f"{cfg:14s} thr {thr:.4f} a_min {a_min}: recall(>=5 px) {row['object_recall_ge5']:.3f} ({row['object_recall_ge5_ci_low']:.3f}-{row['object_recall_ge5_ci_high']:.3f}), "
+            f"strict {row['strict_recall_ge5']:.3f}, precision {row['object_precision']:.3f} ({row['object_precision_ci_low']:.3f}-{row['object_precision_ci_high']:.3f}), "
+            f"flagged {row['flagged_share']:.4f}, false per true {row['false_per_true']:.1f}",
+            flush=True,
+        )
     res = pd.DataFrame(rows)
     res.to_csv(f"reports/tables/{PREFIX}_results.csv", index=False)
 
@@ -107,11 +138,29 @@ if __name__ == "__main__":
     for share in SHARES:
         thr = np.float64(np.quantile(prob[mask & ~np.isnan(prob)], 1 - share))
         row, _, _ = evaluate(scene, prob, thr, a_min, mask, pols, blocks, domain_px, W[:1])
-        curve.append({"flagged_share_target": share, **{k: row[k] for k in ("threshold", "objects", "true_objects", "object_recall_ge5", "strict_recall_ge5", "object_precision", "flagged_share")}})
+        curve.append(
+            {
+                "flagged_share_target": share,
+                **{
+                    k: row[k]
+                    for k in (
+                        "threshold",
+                        "objects",
+                        "true_objects",
+                        "object_recall_ge5",
+                        "strict_recall_ge5",
+                        "object_precision",
+                        "flagged_share",
+                    )
+                },
+            }
+        )
     pd.DataFrame(curve).to_csv(f"reports/tables/{PREFIX}_curve.csv", index=False)
     obj, poly = keep["c_hgb"]
     for k, df in tables(scene, obj, poly, mask).items():
         df.to_csv(f"reports/tables/{PREFIX}_error_analysis_{k}.csv")
     c = res[res.model == "c_hgb"].iloc[0]
-    print(f"\ncriterion (object recall >= 80% at object precision >= 30%), c_hgb on {PREFIX}: recall {c.object_recall_ge5:.3f} -> {'met' if c.object_recall_ge5 >= 0.8 else 'NOT met'}; "
-          f"precision {c.object_precision:.3f} -> {'met' if c.object_precision >= 0.3 else 'NOT met'}")
+    print(
+        f"\ncriterion (object recall >= 80% at object precision >= 30%), c_hgb on {PREFIX}: recall {c.object_recall_ge5:.3f} -> {'met' if c.object_recall_ge5 >= 0.8 else 'NOT met'}; "
+        f"precision {c.object_precision:.3f} -> {'met' if c.object_precision >= 0.3 else 'NOT met'}"
+    )

@@ -8,6 +8,7 @@ split into those overlapping the inventory (true) and those that do not (false a
 is the second group. Also reports the authors' non-landslide points per block (their sampling frame, a hint of the study footprint).
 Writes reports/tables/unmapped_blocks_check.csv and data/processed/unmapped_blocks_candidates.gpkg. Usage: python -m src.analysis.unmapped_check
 """
+
 import json
 
 import geopandas as gpd
@@ -44,7 +45,7 @@ score = np.full((H, W), np.nan, dtype="float32")
 for r0 in range(0, H, TILE):
     for c0 in range(0, W, TILE):
         h, w = min(TILE, H - r0), min(TILE, W - c0)
-        m = um[r0:r0 + h, c0:c0 + w]
+        m = um[r0 : r0 + h, c0 : c0 + w]
         if not m.any():
             continue
         feats = feature_window(r0, c0, h, w)
@@ -54,11 +55,20 @@ for r0 in range(0, H, TILE):
 lab, n = objects(score, thr, a_min, um)
 sizes = np.bincount(lab.ravel(), minlength=n + 1)
 geoms = {int(v): shape(g) for g, v in rfeat.shapes(lab.astype("int32"), mask=lab > 0, transform=tr, connectivity=8)}
-cand = gpd.GeoDataFrame({"size_px": sizes[1:], "pmax": ndi.maximum(score, lab, index=np.arange(1, n + 1)), "geometry": [geoms[i] for i in range(1, n + 1)]}, crs="EPSG:32749")
+cand = gpd.GeoDataFrame(
+    {
+        "size_px": sizes[1:],
+        "pmax": ndi.maximum(score, lab, index=np.arange(1, n + 1)),
+        "geometry": [geoms[i] for i in range(1, n + 1)],
+    },
+    crs="EPSG:32749",
+)
 c = cand.geometry.centroid
 cand["block"] = (((tr.f - c.y) / 10).astype(int) // B) * 100 + (((c.x - tr.c) / 10).astype(int) // B)
 cand["large"] = cand.size_px >= 20
-cand.sort_values("pmax", ascending=False).to_file("data/processed/unmapped_blocks_candidates.gpkg", layer="candidates_s2_grid", driver="GPKG")
+cand.sort_values("pmax", ascending=False).to_file(
+    "data/processed/unmapped_blocks_candidates.gpkg", layer="candidates_s2_grid", driver="GPKG"
+)
 
 # 2. mapped blocks: the delivered candidates, per block
 mp = gpd.read_file("data/processed/candidates_cempaka_pacitan.gpkg", layer="candidates_s2_grid")
@@ -67,12 +77,18 @@ mp["block"] = (((tr.f - c.y) / 10).astype(int) // B) * 100 + (((c.x - tr.c) / 10
 mp["large"] = mp.size_px >= 20
 with rasterio.open(f"{INTERIM}/block.tif") as r:
     bk = r.read(1)
-area = pd.Series(np.bincount(bk[bk >= 0], minlength=bk.max() + 1)[np.unique(bk[bk >= 0])] * 100 / 1e6, index=np.unique(bk[bk >= 0]))
+area = pd.Series(
+    np.bincount(bk[bk >= 0], minlength=bk.max() + 1)[np.unique(bk[bk >= 0])] * 100 / 1e6, index=np.unique(bk[bk >= 0])
+)
 area = area[area >= 3.0]  # blocks of at least 3 km2 (drops coastal slivers, whose density is noisy)
-tab = pd.DataFrame({"area_km2": area,
-                    "large_all": mp[mp.large].groupby("block").size().reindex(area.index, fill_value=0),
-                    "large_false": mp[mp.large & ~mp.overlaps_inventory].groupby("block").size().reindex(area.index, fill_value=0),
-                    "all": mp.groupby("block").size().reindex(area.index, fill_value=0)})
+tab = pd.DataFrame(
+    {
+        "area_km2": area,
+        "large_all": mp[mp.large].groupby("block").size().reindex(area.index, fill_value=0),
+        "large_false": mp[mp.large & ~mp.overlaps_inventory].groupby("block").size().reindex(area.index, fill_value=0),
+        "all": mp.groupby("block").size().reindex(area.index, fill_value=0),
+    }
+)
 for k in ("large_all", "large_false", "all"):
     tab[k + "_per_km2"] = tab[k] / tab.area_km2
 
@@ -89,17 +105,34 @@ rows_out = []
 for b in ids:
     a = float(um[blk == b].sum() * 100 / 1e6)
     sub = cand[cand.block == b]
-    row = {"block_row_col": f"({b // 100}, {b % 100})", "area_km2": round(a, 2), "candidates": len(sub), "large": int(sub.large.sum()),
-           "large_per_km2": round(sub.large.sum() / a, 2), "all_per_km2": round(len(sub) / a, 2),
-           "pct_rank_vs_mapped_large_false": round(100 * float((tab.large_false_per_km2 < sub.large.sum() / a).mean()), 0),
-           "pct_rank_vs_mapped_large_all": round(100 * float((tab.large_all_per_km2 < sub.large.sum() / a).mean()), 0),
-           "non_landslide_points": int(nl_per.get(b, 0)), "inventory_polygons": int((lsb == b).sum())}
+    row = {
+        "block_row_col": f"({b // 100}, {b % 100})",
+        "area_km2": round(a, 2),
+        "candidates": len(sub),
+        "large": int(sub.large.sum()),
+        "large_per_km2": round(sub.large.sum() / a, 2),
+        "all_per_km2": round(len(sub) / a, 2),
+        "pct_rank_vs_mapped_large_false": round(100 * float((tab.large_false_per_km2 < sub.large.sum() / a).mean()), 0),
+        "pct_rank_vs_mapped_large_all": round(100 * float((tab.large_all_per_km2 < sub.large.sum() / a).mean()), 0),
+        "non_landslide_points": int(nl_per.get(b, 0)),
+        "inventory_polygons": int((lsb == b).sum()),
+    }
     rows_out.append(row)
 res = pd.DataFrame(rows_out)
 res.to_csv("reports/tables/unmapped_blocks_check.csv", index=False)
+
+
 def q(s):
-    return f"median {s.median():.2f}, IQR {s.quantile(.25):.2f} to {s.quantile(.75):.2f}"
+    return f"median {s.median():.2f}, IQR {s.quantile(0.25):.2f} to {s.quantile(0.75):.2f}"
+
+
 print(res.to_string(index=False))
-print(f"\nmapped blocks (n = {len(tab)}, area >= 3 km2), large candidates per km2: all {q(tab.large_all_per_km2)}; false alarms only {q(tab.large_false_per_km2)}")
-print(f"mapped blocks: non-landslide points per block, mean {mapped_nl:.1f}; inventory polygons per block, mean {float(pd.Series(lsb).value_counts().reindex(tab.index, fill_value=0).mean()):.1f}")
-print(f"five blocks together: {int(cand.large.sum())} large candidates in {res.area_km2.sum():.1f} km2 = {cand.large.sum() / res.area_km2.sum():.2f} per km2; all candidates {len(cand)}")
+print(
+    f"\nmapped blocks (n = {len(tab)}, area >= 3 km2), large candidates per km2: all {q(tab.large_all_per_km2)}; false alarms only {q(tab.large_false_per_km2)}"
+)
+print(
+    f"mapped blocks: non-landslide points per block, mean {mapped_nl:.1f}; inventory polygons per block, mean {float(pd.Series(lsb).value_counts().reindex(tab.index, fill_value=0).mean()):.1f}"
+)
+print(
+    f"five blocks together: {int(cand.large.sum())} large candidates in {res.area_km2.sum():.1f} km2 = {cand.large.sum() / res.area_km2.sum():.2f} per km2; all candidates {len(cand)}"
+)

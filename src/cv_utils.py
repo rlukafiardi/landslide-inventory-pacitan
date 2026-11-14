@@ -1,4 +1,5 @@
 """Spatial block cross-validation helpers shared by the supervised checks."""
+
 import numpy as np
 import pandas as pd
 from sklearn.ensemble import RandomForestClassifier
@@ -18,7 +19,9 @@ MODELS = {
 
 def blocks(x, y_, size_m):
     """Block ids of a size_m grid over projected coordinates x, y_ (pandas Series)."""
-    return (np.floor(x / size_m).astype(int).astype(str) + "_" + np.floor(y_ / size_m).astype(int).astype(str)).to_numpy()
+    return (
+        np.floor(x / size_m).astype(int).astype(str) + "_" + np.floor(y_ / size_m).astype(int).astype(str)
+    ).to_numpy()
 
 
 def oof(df, cols, model, groups, labels):

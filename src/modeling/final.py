@@ -10,6 +10,7 @@ Writes
 Predicting the test blocks here is not scoring them: no label or metric is touched. Scoring is evaluate_test.py (LANDSLIDE_FINAL_EVAL=1).
 Usage: python -m src.modeling.final
 """
+
 import json
 import time
 from pathlib import Path
@@ -33,8 +34,13 @@ def operating_points():
     out = {}
     for cfg in FINAL + [NAIVE]:
         d = raw[raw.config == cfg]
-        out[cfg] = {"threshold": float(d.thr.median()), "a_min": int(d.a_min.mode().iloc[0]), "repeats": int(len(d)),
-                    "threshold_range": [float(d.thr.min()), float(d.thr.max())], "oof_precision_mean": float(d.precision_at_target.mean())}
+        out[cfg] = {
+            "threshold": float(d.thr.median()),
+            "a_min": int(d.a_min.mode().iloc[0]),
+            "repeats": int(len(d)),
+            "threshold_range": [float(d.thr.min()), float(d.thr.max())],
+            "oof_precision_mean": float(d.precision_at_target.mean()),
+        }
     return out
 
 
@@ -58,13 +64,16 @@ if __name__ == "__main__":
     with rasterio.open(f"{INTERIM}/block.tif") as r:
         dom = r.read(1) >= 0
     H, W = dom.shape
-    out = {c: np.lib.format.open_memmap(f"{INTERIM}/final_{c}.npy", mode="w+", dtype="float32", shape=(H, W)) for c in FINAL + [NAIVE]}
+    out = {
+        c: np.lib.format.open_memmap(f"{INTERIM}/final_{c}.npy", mode="w+", dtype="float32", shape=(H, W))
+        for c in FINAL + [NAIVE]
+    }
     for r in out.values():
         r[:] = np.nan
     for r0 in range(0, H, TILE):
         for c0 in range(0, W, TILE):
             h, w = min(TILE, H - r0), min(TILE, W - c0)
-            m = dom[r0:r0 + h, c0:c0 + w]
+            m = dom[r0 : r0 + h, c0 : c0 + w]
             if not m.any():
                 continue
             feats = feature_window(r0, c0, h, w)

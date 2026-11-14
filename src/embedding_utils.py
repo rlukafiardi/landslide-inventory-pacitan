@@ -1,4 +1,5 @@
 """Shared helpers for the embedding change checks."""
+
 import os
 
 import ee
@@ -25,10 +26,13 @@ def sample_image(img, pts, scale, props, chunk=4000):
     """Sample an ee.Image at points (GeoDataFrame in EPSG:4326 with a 'pid' column); returns a DataFrame by pid."""
     out = []
     for i in range(0, len(pts), chunk):
-        part = pts.iloc[i:i + chunk]
-        fc = ee.FeatureCollection([
-            ee.Feature(ee.Geometry.Point([g.x, g.y]), {"pid": pid}) for pid, g in zip(part.pid, part.geometry, strict=True)
-        ])
+        part = pts.iloc[i : i + chunk]
+        fc = ee.FeatureCollection(
+            [
+                ee.Feature(ee.Geometry.Point([g.x, g.y]), {"pid": pid})
+                for pid, g in zip(part.pid, part.geometry, strict=True)
+            ]
+        )
         feats = img.sampleRegions(collection=fc, scale=scale, geometries=False).getInfo()["features"]
         out += [{"pid": f["properties"]["pid"], **{p: f["properties"][p] for p in props}} for f in feats]
     return pd.DataFrame(out).set_index("pid")
@@ -65,7 +69,11 @@ AOI_BOUNDS = [111.0, -8.28, 111.39, -7.93]
 def ndvi_composite(start, end):
     """Median NDVI of Sentinel-2 L1C scenes with Cloud Score+ cs_cdf >= CS_MIN."""
     cs = ee.ImageCollection("GOOGLE/CLOUD_SCORE_PLUS/V1/S2_HARMONIZED")
-    c = (ee.ImageCollection("COPERNICUS/S2_HARMONIZED").filterBounds(ee.Geometry.Rectangle(AOI_BOUNDS)).filterDate(start, end)
-         .linkCollection(cs, ["cs_cdf"])
-         .map(lambda i: i.updateMask(i.select("cs_cdf").gte(CS_MIN)).normalizedDifference(["B8", "B4"]).rename("ndvi")))
+    c = (
+        ee.ImageCollection("COPERNICUS/S2_HARMONIZED")
+        .filterBounds(ee.Geometry.Rectangle(AOI_BOUNDS))
+        .filterDate(start, end)
+        .linkCollection(cs, ["cs_cdf"])
+        .map(lambda i: i.updateMask(i.select("cs_cdf").gte(CS_MIN)).normalizedDifference(["B8", "B4"]).rename("ndvi"))
+    )
     return c.median()

@@ -6,6 +6,7 @@ Pass criteria (fixed before the first run):
       (2017 is dataset v1.1, 2018 is v1.0; a large ratio means the version change, not the world, moves the vectors)
 Usage: python -m src.embedding_change_check <landslide_gpkg> <out_csv>
 """
+
 import sys
 
 import geopandas as gpd
@@ -37,8 +38,9 @@ while len(bg) < len(ls):
     p = Point(rng.uniform(minx, maxx), rng.uniform(miny, maxy))
     if not keep_out.contains(p):
         bg.append(p)
-neg = gpd.GeoDataFrame({"pid": [f"bg{i}" for i in range(len(bg))], "grp": "background", "area": np.nan},
-                       geometry=bg, crs=32749)
+neg = gpd.GeoDataFrame(
+    {"pid": [f"bg{i}" for i in range(len(bg))], "grp": "background", "area": np.nan}, geometry=bg, crs=32749
+)
 
 pts = pd.concat([pos[["pid", "grp", "area", "geometry"]], neg]).pipe(gpd.GeoDataFrame, crs=32749).to_crs(4326)
 init_ee()
@@ -47,7 +49,9 @@ meta = pts.set_index("pid").loc[dist.index, ["grp", "area"]].join(dist)
 meta.to_csv(out_csv)
 common = meta.index
 
-print(f"\npoints valid in all years: {len(common)} (landslide {(meta.grp == 'landslide').sum()}, background {(meta.grp == 'background').sum()})")
+print(
+    f"\npoints valid in all years: {len(common)} (landslide {(meta.grp == 'landslide').sum()}, background {(meta.grp == 'background').sum()})"
+)
 L, B = meta[meta.grp == "landslide"], meta[meta.grp == "background"]
 print("\nmedian cosine distance            landslide  background")
 for c in ("d1718", "d1819"):

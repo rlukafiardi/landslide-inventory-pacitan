@@ -6,6 +6,7 @@ flagged objects at the frozen point split into true objects (blue outline: overl
 The test blocks are read through data.load.block_mask("test"), so this needs LANDSLIDE_FINAL_EVAL=1 (the test score is already spent).
 Usage: LANDSLIDE_FINAL_EVAL=1 python -m src.delivery.test_map
 """
+
 import json
 
 import matplotlib
@@ -47,17 +48,50 @@ for ax, b in zip(axes.ravel(), top, strict=False):
         if mask.any():
             ax.contour(mask.astype(float), levels=[0.5], colors=col, linewidths=lw)
     pb, ob = big[big.block == b], obj[obj.block == b]
-    ax.set_title(f"block {b}\n{int(pb.detected.sum())} of {len(pb)} polygons found · {int(ob.tp.sum())} true · {int((~ob.tp).sum())} false objects", fontsize=8.5, loc="left", color=INK)
+    ax.set_title(
+        f"block {b}\n{int(pb.detected.sum())} of {len(pb)} polygons found · {int(ob.tp.sum())} true · {int((~ob.tp).sum())} false objects",
+        fontsize=8.5,
+        loc="left",
+        color=INK,
+    )
     ax.set_xticks([])
     ax.set_yticks([])
     for s in ax.spines.values():
         s.set_visible(False)
     ax.plot([8, 18], [sl[0].stop - sl[0].start - 10] * 2, color=INK, lw=2.5)  # 100 m scale bar (10 px)
-    ax.text(8, sl[0].stop - sl[0].start - 16, "100 m", fontsize=7, color=INK, bbox=dict(facecolor="white", edgecolor="none", pad=0.8, alpha=0.8))
-fig.legend(handles=[Line2D([], [], color=INK, lw=1.2, label="reference polygon (inventory)"), Line2D([], [], color=BLUE, lw=1.6, label="flagged object, true (overlaps a polygon or its ring)"),
-                    Line2D([], [], color=ORANGE, lw=1.6, label="flagged object, false alarm")], loc="lower center", ncol=3, frameon=False, fontsize=8.5)
-fig.suptitle("Held-out test blocks with the most reference polygons: most scars are found, and most flagged objects around them are false alarms", x=0.01, ha="left", fontsize=10.5, color=INK)
-fig.text(0.01, 0.045, "Background: Sentinel-2 vegetation loss (NDVI Aug-Oct 2017 minus Apr-May 2018), darker = more lost. 3 km blocks, north up, Sentinel-2 grid. Frozen threshold 0.1956, minimum 3 px.", fontsize=7, color="#52514e")
+    ax.text(
+        8,
+        sl[0].stop - sl[0].start - 16,
+        "100 m",
+        fontsize=7,
+        color=INK,
+        bbox=dict(facecolor="white", edgecolor="none", pad=0.8, alpha=0.8),
+    )
+fig.legend(
+    handles=[
+        Line2D([], [], color=INK, lw=1.2, label="reference polygon (inventory)"),
+        Line2D([], [], color=BLUE, lw=1.6, label="flagged object, true (overlaps a polygon or its ring)"),
+        Line2D([], [], color=ORANGE, lw=1.6, label="flagged object, false alarm"),
+    ],
+    loc="lower center",
+    ncol=3,
+    frameon=False,
+    fontsize=8.5,
+)
+fig.suptitle(
+    "Held-out test blocks with the most reference polygons: most scars are found, and most flagged objects around them are false alarms",
+    x=0.01,
+    ha="left",
+    fontsize=10.5,
+    color=INK,
+)
+fig.text(
+    0.01,
+    0.045,
+    "Background: Sentinel-2 vegetation loss (NDVI Aug-Oct 2017 minus Apr-May 2018), darker = more lost. 3 km blocks, north up, Sentinel-2 grid. Frozen threshold 0.1956, minimum 3 px.",
+    fontsize=7,
+    color="#52514e",
+)
 fig.tight_layout(rect=(0, 0.08, 1, 0.95))
 fig.savefig("reports/figures/test_blocks_map.png")
 print("reports/figures/test_blocks_map.png; blocks", top)

@@ -3,6 +3,7 @@ Landslide points are moved onto the Sentinel-2 grid (same shift as src/data/labe
 frame, so the site factors (sampled in site_controlled_check.py) keep their original coordinates.
 Usage: python -m src.data.features_from_stack <poc_features_csv> <out_csv>
 """
+
 import sys
 
 import geopandas as gpd

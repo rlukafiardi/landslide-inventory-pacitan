@@ -5,6 +5,7 @@ Checks (each printed with a PASS/FAIL):
   ndvi        values in [-1, 1]; share of domain pixels without a cloud-free observation, per window (counted, not dropped)
 Usage: python -m src.data.check_stack
 """
+
 import numpy as np
 import rasterio
 from rasterio.windows import Window
@@ -23,7 +24,7 @@ for layer in ("emb2018",):
         for i in range(0, H, STEP):
             w = Window(0, i, W, min(STEP, H - i))
             a = r.read(window=w).astype("float32")
-            d = dom[i:i + STEP]
+            d = dom[i : i + STEP]
             nodata = (a == 0).all(axis=0)
             missing += int((nodata & d).sum())
             valid = d & ~nodata
@@ -32,8 +33,10 @@ for layer in ("emb2018",):
     n = np.concatenate(norms)
     good = missing == 0 and abs(n.mean() - 1) < 0.05 and n.min() > 0.8 and n.max() < 1.2
     ok &= good
-    print(f"{layer}: domain pixels without data {missing:,} of {n_dom:,}; norm mean {n.mean():.3f} min {n.min():.3f} max {n.max():.3f} "
-          f"-> {'PASS' if good else 'FAIL'}")
+    print(
+        f"{layer}: domain pixels without data {missing:,} of {n_dom:,}; norm mean {n.mean():.3f} min {n.min():.3f} max {n.max():.3f} "
+        f"-> {'PASS' if good else 'FAIL'}"
+    )
 
 with rasterio.open(f"{OUT}/ndvi.tif") as r:
     names = r.descriptions
@@ -42,7 +45,7 @@ with rasterio.open(f"{OUT}/ndvi.tif") as r:
     allgap = 0
     for i in range(0, H, STEP):
         a = r.read(window=Window(0, i, W, min(STEP, H - i)))
-        d = dom[i:i + STEP]
+        d = dom[i : i + STEP]
         nod = a == -9999
         gap += (nod & d).sum(axis=(1, 2))
         out_of_range += (((a < -1) | (a > 1)) & ~nod & d).sum(axis=(1, 2))
@@ -50,7 +53,9 @@ with rasterio.open(f"{OUT}/ndvi.tif") as r:
 for k, nme in enumerate(names):
     good = out_of_range[k] == 0
     ok &= good
-    print(f"ndvi {nme}: no cloud-free observation {gap[k]:,} px ({gap[k] / n_dom:.2%} of the domain), outside [-1, 1]: {out_of_range[k]} "
-          f"-> {'PASS' if good else 'FAIL'}")
+    print(
+        f"ndvi {nme}: no cloud-free observation {gap[k]:,} px ({gap[k] / n_dom:.2%} of the domain), outside [-1, 1]: {out_of_range[k]} "
+        f"-> {'PASS' if good else 'FAIL'}"
+    )
 print(f"ndvi pixels with no observation in any window: {allgap:,} ({allgap / n_dom:.2%})")
 print("ALL CHECKS PASS" if ok else "SOME CHECKS FAILED")

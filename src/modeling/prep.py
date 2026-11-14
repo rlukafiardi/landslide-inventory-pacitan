@@ -3,6 +3,7 @@
 Feature sets (groups from src/features/registry.py): site = terrain + site_cat; a = dNDVI + factors; b = 2018 embedding + factors;
 c = everything. Linear models get one-hot land use / geology and training-median fills; boosting gets raw codes (categorical) and NaN.
 """
+
 import json
 
 import numpy as np
@@ -19,7 +20,12 @@ SETS = {
     "site": GROUPS["terrain"] + GROUPS["site_cat"],
     "a": GROUPS["ndvi_pixel"] + GROUPS["ndvi_nbr"] + GROUPS["terrain"] + GROUPS["site_cat"] + GROUPS["flags"],
     "b": GROUPS["emb"] + GROUPS["terrain"] + GROUPS["site_cat"] + GROUPS["flags"],
-    "c": GROUPS["ndvi_pixel"] + GROUPS["ndvi_nbr"] + GROUPS["terrain"] + GROUPS["site_cat"] + GROUPS["flags"] + GROUPS["emb"],
+    "c": GROUPS["ndvi_pixel"]
+    + GROUPS["ndvi_nbr"]
+    + GROUPS["terrain"]
+    + GROUPS["site_cat"]
+    + GROUPS["flags"]
+    + GROUPS["emb"],
 }
 # (model kind, feature set); "simple_logreg" is the best simple baseline of docs/validation-design.md
 CONFIGS = {
@@ -33,8 +39,14 @@ CONFIGS = {
 }
 LEVELS = {"geologi": list(range(1, 34)), "landuse": list(range(1, 14))}
 # monotone priors from the EDA: steeper and more vegetation loss / bare ground means more landslide
-MONO = {"slope": 1, **{f"{b}_{s}{w}": -1 for b in ("dB", "postB") for s in ("mean", "min") for w in (3, 5)},
-        "dB": -1, "postB": -1, "dB_anom11": -1, "postB_anom11": -1}
+MONO = {
+    "slope": 1,
+    **{f"{b}_{s}{w}": -1 for b in ("dB", "postB") for s in ("mean", "min") for w in (3, 5)},
+    "dB": -1,
+    "postB": -1,
+    "dB_anom11": -1,
+    "postB_anom11": -1,
+}
 FILLS = json.load(open(f"{INTERIM}/fill_values.json"))
 
 
@@ -61,14 +73,24 @@ def make_model(kind, params, cols):
     num = [c for c in cols if c not in CATEGORICAL]
     names = num + [c for c in cols if c in CATEGORICAL]
     return HistGradientBoostingClassifier(
-        max_depth=params["max_depth"], learning_rate=params["learning_rate"], max_iter=params["max_iter"],
-        min_samples_leaf=params["min_samples_leaf"], l2_regularization=params["l2_regularization"],
-        monotonic_cst=[MONO.get(n, 0) for n in names], categorical_features=[n in CATEGORICAL for n in names],
-        early_stopping=False, random_state=SEED)
+        max_depth=params["max_depth"],
+        learning_rate=params["learning_rate"],
+        max_iter=params["max_iter"],
+        min_samples_leaf=params["min_samples_leaf"],
+        l2_regularization=params["l2_regularization"],
+        monotonic_cst=[MONO.get(n, 0) for n in names],
+        categorical_features=[n in CATEGORICAL for n in names],
+        early_stopping=False,
+        random_state=SEED,
+    )
 
 
 def default_params(kind):
-    return {"C": 0.1} if kind == "logreg" else {"max_depth": 4, "learning_rate": 0.06, "max_iter": 300, "min_samples_leaf": 200, "l2_regularization": 1.0}
+    return (
+        {"C": 0.1}
+        if kind == "logreg"
+        else {"max_depth": 4, "learning_rate": 0.06, "max_iter": 300, "min_samples_leaf": 200, "l2_regularization": 1.0}
+    )
 
 
 def load_params():

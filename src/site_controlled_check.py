@@ -16,6 +16,7 @@ Known open risk: the 2017 layer is dataset v1.1 and 2018 is v1.0, so part of the
 Factors: aspect (sin, cos), distriv, distroad, elev, planc, profc, slope, spi, twi, plus one-hot geologi and landuse.
 Usage: python -m src.site_controlled_check <features_csv> <factor_dir>
 """
+
 import sys
 
 import geopandas as gpd
@@ -54,8 +55,13 @@ print(f"points {len(d)} (landslide {y.sum()}), dropped for missing factors: {len
 SITE = list(siteX.columns)
 NDVI = ["pre", "postA", "postB", "dA", "dB"]
 DIFF = [f"x_{b}" for b in BANDS]
-SETS = {"F": SITE, "B+": NDVI + SITE, "D+": DIFF + SITE, "E": DIFF + NDVI + SITE,
-        "A+": [f"e18_{b}" for b in BANDS] + SITE}
+SETS = {
+    "F": SITE,
+    "B+": NDVI + SITE,
+    "D+": DIFF + SITE,
+    "E": DIFF + NDVI + SITE,
+    "A+": [f"e18_{b}" for b in BANDS] + SITE,
+}
 g3 = blocks(xy.loc[d.index].x, xy.loc[d.index].y, 3000)
 print(f"3 km blocks: {len(set(g3))}")
 
@@ -70,9 +76,19 @@ for model in MODELS:
     print("  by polygon size class        " + "   ".join(f"{k:>4}" for k in ("F", "B+", "D+", "E")))
     for lab, lo, hi in [("<5 px (<500 m2)", 0, 500), ("5-20 px", 500, 2000), (">20 px (>2000 m2)", 2000, 1e12)]:
         m = ~y | ((area >= lo) & (area < hi))
-        print(f"    {lab:<22} n={int((m & y).sum()):<4} " + "   ".join(f"{pooled_auc(P[k][m], y[m]):.3f}" for k in ("F", "B+", "D+", "E")))
+        print(
+            f"    {lab:<22} n={int((m & y).sum()):<4} "
+            + "   ".join(f"{pooled_auc(P[k][m], y[m]):.3f}" for k in ("F", "B+", "D+", "E"))
+        )
     ci1 = block_boot(P, g3, y, lambda p, yy: auc(p["D+"][yy], p["D+"][~yy]) - auc(p["B+"][yy], p["B+"][~yy]))
-    ci2 = block_boot(P, g3, y, lambda p, yy: auc(p["E"][yy], p["E"][~yy]) - max(auc(p["D+"][yy], p["D+"][~yy]), auc(p["B+"][yy], p["B+"][~yy])))
+    ci2 = block_boot(
+        P,
+        g3,
+        y,
+        lambda p, yy: (
+            auc(p["E"][yy], p["E"][~yy]) - max(auc(p["D+"][yy], p["D+"][~yy]), auc(p["B+"][yy], p["B+"][~yy]))
+        ),
+    )
     d1 = pooled_auc(P["D+"], y) - pooled_auc(P["B+"], y)
     d2 = pooled_auc(P["E"], y) - max(pooled_auc(P["D+"], y), pooled_auc(P["B+"], y))
     print(f"  D1 D+ - B+: {d1:+.3f}, CI [{ci1[0]:+.3f}, {ci1[1]:+.3f}]")
@@ -85,5 +101,7 @@ for model in MODELS:
 d0 = all(v[0] for v in verdict.values())
 d1 = all(v[1] for v in verdict.values())
 d2 = all(v[2] for v in verdict.values())
-print(f"\nD0 {'PASS' if d0 else 'FAIL'} | D1 {'PASS' if d1 else 'FAIL'} | D2 {'PASS' if d2 else 'FAIL'} | "
-      f"keep embeddings for detection: {'YES' if d0 and (d1 or d2) else 'NO'}")
+print(
+    f"\nD0 {'PASS' if d0 else 'FAIL'} | D1 {'PASS' if d1 else 'FAIL'} | D2 {'PASS' if d2 else 'FAIL'} | "
+    f"keep embeddings for detection: {'YES' if d0 and (d1 or d2) else 'NO'}"
+)

@@ -1,6 +1,7 @@
 """Phase 1b: every factor raster must share CRS, transform, shape and nodata with the land-use grid.
 Usage: python -m src.data.check_grid <factor_dir>
 """
+
 import sys
 
 import rasterio
@@ -17,5 +18,7 @@ for n in NAMES:
         ref = ref or key
         same = key == ref
         bad += not same
-        print(f"{n:<9} {'OK ' if same else 'DIFF'} dtype={r.dtypes[0]:<8} nodata={r.nodata} invalid_px={invalid:>9,} shape={r.shape}")
+        print(
+            f"{n:<9} {'OK ' if same else 'DIFF'} dtype={r.dtypes[0]:<8} nodata={r.nodata} invalid_px={invalid:>9,} shape={r.shape}"
+        )
 print("grid identical across all layers:", bad == 0)

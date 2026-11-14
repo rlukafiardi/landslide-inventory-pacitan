@@ -13,6 +13,7 @@ Strict recall: IoU between the polygon and the union of the predicted objects ov
 Object precision: the share of predicted objects that overlap a polygon or its exclusion ring (the ring is boundary tolerance).
 Unmapped real slides count as false alarms, so precision is a floor.
 """
+
 import numpy as np
 import pandas as pd
 from scipy import ndimage as ndi
@@ -54,9 +55,15 @@ def object_metrics(prob, thr, a_min, poly_id, poly_class, ring, eval_mask, eval_
         union = int(inside.sum()) + int(sizes[objs].sum()) - inter
         strict[k] = inter / union >= iou_min
     tp_objects = len(np.unique(lab[((poly_id > 0) | ring) & pred])) if n_pred else 0
-    out = {"thr": thr, "a_min": a_min, "pred_objects": n_pred, "tp_objects": tp_objects,
-           "precision": tp_objects / n_pred if n_pred else np.nan,
-           "flagged_area_share": float(pred.sum() / max(eval_mask.sum(), 1)), "polygons": len(eval_ids)}
+    out = {
+        "thr": thr,
+        "a_min": a_min,
+        "pred_objects": n_pred,
+        "tp_objects": tp_objects,
+        "precision": tp_objects / n_pred if n_pred else np.nan,
+        "flagged_area_share": float(pred.sum() / max(eval_mask.sum(), 1)),
+        "polygons": len(eval_ids),
+    }
     for c in CLASSES:
         m = classes == c
         out[f"n_{c}"] = int(m.sum())
@@ -69,7 +76,9 @@ def object_metrics(prob, thr, a_min, poly_id, poly_class, ring, eval_mask, eval_
 
 
 def sweep(prob, thresholds, a_mins, poly_id, poly_class, ring, eval_mask, eval_ids):
-    return pd.DataFrame([object_metrics(prob, t, a, poly_id, poly_class, ring, eval_mask, eval_ids) for t in thresholds for a in a_mins])
+    return pd.DataFrame(
+        [object_metrics(prob, t, a, poly_id, poly_class, ring, eval_mask, eval_ids) for t in thresholds for a in a_mins]
+    )
 
 
 def choose_operating_point(df, recall_target=0.8):
@@ -78,7 +87,9 @@ def choose_operating_point(df, recall_target=0.8):
     ok = df[df.recall_ge5 >= recall_target]
     if ok.empty:
         return df.sort_values(["recall_ge5", "precision"], ascending=False).iloc[0].to_dict() | {"reached": False}
-    return ok.sort_values(["precision", "flagged_area_share"], ascending=[False, True]).iloc[0].to_dict() | {"reached": True}
+    return ok.sort_values(["precision", "flagged_area_share"], ascending=[False, True]).iloc[0].to_dict() | {
+        "reached": True
+    }
 
 
 def pixel_ap(y, p, w=None):

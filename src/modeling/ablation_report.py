@@ -5,6 +5,7 @@ difference in operating precision (variant minus full model) over the same block
 excludes zero; with one repeat there is no repeats-won count.
 Usage: python -m src.modeling.ablation_report <seed>
 """
+
 import sys
 
 import numpy as np
@@ -24,9 +25,18 @@ for cfg in raw.index:
     d = b - full
     d = d[~np.isnan(d)]
     lo, hi = np.percentile(d, [2.5, 97.5]) if len(d) else (np.nan, np.nan)
-    rows.append({"variant": cfg, "precision_at_80_recall": r.precision_at_target, "diff_vs_full": r.precision_at_target - raw.loc["c_hgb", "precision_at_target"],
-                 "ci_low": lo, "ci_high": hi, "flagged_share": r.flagged_share, "weighted_pixel_AP": r.weighted_pixel_AP,
-                 "interval_excludes_zero": bool(lo > 0 or hi < 0)})
+    rows.append(
+        {
+            "variant": cfg,
+            "precision_at_80_recall": r.precision_at_target,
+            "diff_vs_full": r.precision_at_target - raw.loc["c_hgb", "precision_at_target"],
+            "ci_low": lo,
+            "ci_high": hi,
+            "flagged_share": r.flagged_share,
+            "weighted_pixel_AP": r.weighted_pixel_AP,
+            "interval_excludes_zero": bool(lo > 0 or hi < 0),
+        }
+    )
 out = pd.DataFrame(rows).round(3)
 out.to_csv("reports/tables/ablation.csv", index=False)
 print(out.to_string(index=False))
